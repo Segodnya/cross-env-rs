@@ -1,6 +1,6 @@
 {
   "name": "cross-env-rs",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Rust port of cross-env. Drop-in replacement that ships native binaries for instant startup.",
   "license": "MIT",
   "author": "Kira Kurentsov <immortalsteel@gmail.com>",
