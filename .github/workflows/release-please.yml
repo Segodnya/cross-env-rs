@@ -4,6 +4,14 @@ on:
   push:
     branches:
       - main
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Existing release tag to (re)publish (e.g., v0.1.1). Leave empty to skip publish jobs.'
+        required: false
+        type: string
 
 permissions:
   contents: write
@@ -12,6 +20,7 @@ permissions:
 
 jobs:
   release-please:
+    if: github.event_name == 'push'
     runs-on: ubuntu-latest
     outputs:
       releases_created: ${{ steps.release.outputs.releases_created }}
@@ -26,7 +35,13 @@ jobs:
 
   build-and-publish-platforms:
     needs: release-please
-    if: needs.release-please.outputs.releases_created == 'true'
+    if: |
+      always() &&
+      (
+        (github.event_name == 'push' && needs.release-please.outputs.releases_created == 'true') ||
+        github.event_name == 'release' ||
+        (github.event_name == 'workflow_dispatch' && inputs.tag != '')
+      )
     permissions:
       contents: read
       id-token: write
@@ -65,6 +80,8 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.release.tag_name || inputs.tag || github.ref }}
 
       - uses: dtolnay/rust-toolchain@stable
         with:
@@ -126,13 +143,22 @@ jobs:
 
   publish-main:
     needs: [release-please, build-and-publish-platforms]
-    if: needs.release-please.outputs.releases_created == 'true'
+    if: |
+      always() &&
+      needs.build-and-publish-platforms.result == 'success' &&
+      (
+        (github.event_name == 'push' && needs.release-please.outputs.releases_created == 'true') ||
+        github.event_name == 'release' ||
+        (github.event_name == 'workflow_dispatch' && inputs.tag != '')
+      )
     runs-on: ubuntu-latest
     permissions:
       contents: read
       id-token: write
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.release.tag_name || inputs.tag || github.ref }}
       - uses: actions/setup-node@v4
         with:
           node-version: 20
