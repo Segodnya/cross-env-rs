@@ -1,6 +1,6 @@
 {
   "name": "cross-env-rs-windows-x64",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Windows x64 native binary for cross-env-rs.",
   "license": "MIT",
   "author": "Kira Kurentsov <immortalsteel@gmail.com>",

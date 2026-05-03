@@ -36,12 +36,12 @@
     "README.md"
   ],
   "optionalDependencies": {
-    "cross-env-rs-darwin-arm64": "0.0.0",
-    "cross-env-rs-darwin-x64": "0.0.0",
-    "cross-env-rs-linux-x64-gnu": "0.0.0",
-    "cross-env-rs-linux-x64-musl": "0.0.0",
-    "cross-env-rs-linux-arm64-gnu": "0.0.0",
-    "cross-env-rs-linux-arm64-musl": "0.0.0",
-    "cross-env-rs-windows-x64": "0.0.0"
+    "cross-env-rs-darwin-arm64": "0.1.1",
+    "cross-env-rs-darwin-x64": "0.1.1",
+    "cross-env-rs-linux-x64-gnu": "0.1.1",
+    "cross-env-rs-linux-x64-musl": "0.1.1",
+    "cross-env-rs-linux-arm64-gnu": "0.1.1",
+    "cross-env-rs-linux-arm64-musl": "0.1.1",
+    "cross-env-rs-windows-x64": "0.1.1"
   }
 }
