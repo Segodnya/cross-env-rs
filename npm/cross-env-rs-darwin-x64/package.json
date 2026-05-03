@@ -1,0 +1,24 @@
+{
+  "name": "cross-env-rs-darwin-x64",
+  "version": "0.0.1-placeholder.0",
+  "description": "macOS x64 native binary for cross-env-rs. Placeholder — real binary ships with 0.1.0.",
+  "license": "MIT",
+  "author": "Kira Kurentsov <immortalsteel@gmail.com>",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Segodnya/cross-env-rs.git",
+    "directory": "npm/cross-env-rs-darwin-x64"
+  },
+  "homepage": "https://github.com/Segodnya/cross-env-rs#readme",
+  "bugs": {
+    "url": "https://github.com/Segodnya/cross-env-rs/issues"
+  },
+  "os": ["darwin"],
+  "cpu": ["x64"],
+  "engines": {
+    "node": ">=14"
+  },
+  "files": [
+    "README.md"
+  ]
+}

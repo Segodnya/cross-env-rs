@@ -1,0 +1,21 @@
+# Rust
+target/
+Cargo.lock.bak
+*.pdb
+
+# Node
+node_modules/
+.npmrc.local
+*.tgz
+
+# Editors / OS
+.DS_Store
+.idea/
+.vscode/
+*.swp
+*~
+
+# Local-only env / scratch
+.env
+.env.local
+scratch/

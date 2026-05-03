@@ -1,0 +1,32 @@
+{
+  "name": "cross-env-rs",
+  "version": "0.0.1-placeholder.0",
+  "description": "Rust port of cross-env. Drop-in replacement that ships native binaries for instant startup. Active development — first real release (0.1.0) coming soon.",
+  "license": "MIT",
+  "author": "Kira Kurentsov <immortalsteel@gmail.com>",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Segodnya/cross-env-rs.git",
+    "directory": "npm/cross-env-rs"
+  },
+  "homepage": "https://github.com/Segodnya/cross-env-rs#readme",
+  "bugs": {
+    "url": "https://github.com/Segodnya/cross-env-rs/issues"
+  },
+  "keywords": [
+    "cross-env",
+    "env",
+    "environment",
+    "variables",
+    "rust",
+    "cli",
+    "node",
+    "scripts"
+  ],
+  "engines": {
+    "node": ">=14"
+  },
+  "files": [
+    "README.md"
+  ]
+}
