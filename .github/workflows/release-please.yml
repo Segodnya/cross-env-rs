@@ -116,6 +116,10 @@ jobs:
           node-version: 20
           registry-url: https://registry.npmjs.org
 
+      - name: Upgrade npm (Trusted Publishing requires >=11.5.1)
+        shell: bash
+        run: npm install -g npm@latest
+
       - name: Publish platform package
         working-directory: npm/${{ matrix.pkg }}
         run: npm publish --provenance --access public
@@ -133,6 +137,8 @@ jobs:
         with:
           node-version: 20
           registry-url: https://registry.npmjs.org
+      - name: Upgrade npm (Trusted Publishing requires >=11.5.1)
+        run: npm install -g npm@latest
       - name: Publish main package
         working-directory: npm/cross-env-rs
         run: npm publish --provenance --access public
