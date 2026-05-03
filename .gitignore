@@ -3,6 +3,11 @@ target/
 Cargo.lock.bak
 *.pdb
 
+# Native binaries are staged into platform packages by CI before publish,
+# never committed to git. npm pack still picks them up via the package's
+# `files` field at publish time.
+npm/cross-env-rs-*/bin/
+
 # Node
 node_modules/
 .npmrc.local

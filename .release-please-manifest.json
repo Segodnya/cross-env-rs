@@ -1,10 +1,10 @@
 {
-  "npm/cross-env-rs": "0.0.1-placeholder.0",
-  "npm/cross-env-rs-darwin-arm64": "0.0.1-placeholder.0",
-  "npm/cross-env-rs-darwin-x64": "0.0.1-placeholder.0",
-  "npm/cross-env-rs-linux-x64-gnu": "0.0.1-placeholder.0",
-  "npm/cross-env-rs-linux-x64-musl": "0.0.1-placeholder.0",
-  "npm/cross-env-rs-linux-arm64-gnu": "0.0.1-placeholder.0",
-  "npm/cross-env-rs-linux-arm64-musl": "0.0.1-placeholder.0",
-  "npm/cross-env-rs-windows-x64": "0.0.1-placeholder.0"
+  "npm/cross-env-rs": "0.0.0",
+  "npm/cross-env-rs-darwin-arm64": "0.0.0",
+  "npm/cross-env-rs-darwin-x64": "0.0.0",
+  "npm/cross-env-rs-linux-x64-gnu": "0.0.0",
+  "npm/cross-env-rs-linux-x64-musl": "0.0.0",
+  "npm/cross-env-rs-linux-arm64-gnu": "0.0.0",
+  "npm/cross-env-rs-linux-arm64-musl": "0.0.0",
+  "npm/cross-env-rs-windows-x64": "0.0.0"
 }

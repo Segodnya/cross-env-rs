@@ -1,0 +1,21 @@
+[package]
+name = "cross-env-rs"
+description = "Rust port of cross-env. Drop-in replacement that ships native binaries for instant startup."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+
+[dependencies]
+which = "7"
+anyhow = "1"
+
+[[bin]]
+name = "cross-env"
+path = "src/bin/cross_env.rs"
+
+[[bin]]
+name = "cross-env-shell"
+path = "src/bin/cross_env_shell.rs"

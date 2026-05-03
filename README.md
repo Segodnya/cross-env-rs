@@ -37,6 +37,21 @@ This repository hosts the in-progress port. **No release yet** — the npm packa
 
 > **Not yet supported**: `win32-arm64`. Tracked as a follow-up; if you need it, please open an issue.
 
+## Benchmarks
+
+Measured on macOS arm64 (Apple Silicon, M-series), Node 22, against upstream `cross-env@7.0.3`. Reproduce with `bash scripts/bench.sh`.
+
+| Scenario                                              | upstream `cross-env` | `cross-env-rs`   | Improvement       |
+| ----------------------------------------------------- | -------------------: | ---------------: | ----------------: |
+| Wrapper overhead (`cross-env FOO=bar /usr/bin/true`)  |    43.0 ± 0.6 ms     |   2.2 ± 0.1 ms   | **~20× faster**   |
+| Realistic (`cross-env FOO=bar node -e 0`)             |    73.6 ± 0.6 ms     |  33.4 ± 0.6 ms   | **~2.2× faster**  |
+| Peak RSS (wrapper-only)                               |       46 MB          |     1.3 MB       | **~35× less**     |
+| On-disk size                                          |   ~64 KB pkg + Node  |     338 KB       | self-contained    |
+
+The 20× wrapper-only gap closes to ~2× when the child is itself a Node process, because Node's ~30 ms cold start is paid by both. The win surfaces clearly in CI scripts that fan out many `npm run`/`yarn` invocations: each one shaves ~40 ms.
+
+Numbers will be tracked per release as performance evolves. Different CPU families and shell pipelines produce different absolute numbers — the relative gap is what matters.
+
 ## Roadmap
 
 1. **Day 0 (current):** placeholder publish to reserve names.

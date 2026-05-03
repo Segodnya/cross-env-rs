@@ -1,7 +1,7 @@
 {
   "name": "cross-env-rs-linux-x64-gnu",
-  "version": "0.0.1-placeholder.0",
-  "description": "Linux x64 (glibc) native binary for cross-env-rs. Placeholder — real binary ships with 0.1.0.",
+  "version": "0.0.0",
+  "description": "Linux x64 (glibc) native binary for cross-env-rs.",
   "license": "MIT",
   "author": "Kira Kurentsov <immortalsteel@gmail.com>",
   "repository": {
@@ -20,6 +20,7 @@
     "node": ">=14"
   },
   "files": [
+    "bin/",
     "README.md"
   ]
 }

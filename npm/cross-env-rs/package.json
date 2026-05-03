@@ -1,7 +1,7 @@
 {
   "name": "cross-env-rs",
-  "version": "0.0.1-placeholder.0",
-  "description": "Rust port of cross-env. Drop-in replacement that ships native binaries for instant startup. Active development — first real release (0.1.0) coming soon.",
+  "version": "0.0.0",
+  "description": "Rust port of cross-env. Drop-in replacement that ships native binaries for instant startup.",
   "license": "MIT",
   "author": "Kira Kurentsov <immortalsteel@gmail.com>",
   "repository": {
@@ -26,7 +26,22 @@
   "engines": {
     "node": ">=14"
   },
+  "bin": {
+    "cross-env": "bin/cross-env.js",
+    "cross-env-shell": "bin/cross-env-shell.js"
+  },
   "files": [
+    "bin/",
+    "lib/",
     "README.md"
-  ]
+  ],
+  "optionalDependencies": {
+    "cross-env-rs-darwin-arm64": "0.0.0",
+    "cross-env-rs-darwin-x64": "0.0.0",
+    "cross-env-rs-linux-x64-gnu": "0.0.0",
+    "cross-env-rs-linux-x64-musl": "0.0.0",
+    "cross-env-rs-linux-arm64-gnu": "0.0.0",
+    "cross-env-rs-linux-arm64-musl": "0.0.0",
+    "cross-env-rs-windows-x64": "0.0.0"
+  }
 }

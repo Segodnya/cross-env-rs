@@ -15,7 +15,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       releases_created: ${{ steps.release.outputs.releases_created }}
-      paths_released: ${{ steps.release.outputs.paths_released }}
+      tag_name: ${{ steps.release.outputs.tag_name }}
     steps:
       - uses: googleapis/release-please-action@v4
         id: release
@@ -24,22 +24,115 @@ jobs:
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
 
-  # Publish step is intentionally absent until the 0.1.0 milestone.
-  #
-  # When the Rust crate and the cross-build matrix land, add a `publish`
-  # job here gated on `needs.release-please.outputs.releases_created`
-  # that:
-  #   1. Runs the cross-build matrix and stages the binary into the
-  #      matching `npm/cross-env-rs-<platform>/` directory.
-  #   2. Runs `npm publish --provenance --access public` for each of
-  #      the eight packages.
-  #
-  # Authentication uses npm Trusted Publishing (OIDC) — no NPM_TOKEN
-  # secret. Requirements:
-  #   - `permissions: id-token: write` on this workflow (already set).
-  #   - Each of the eight packages has a Trusted Publisher configured
-  #     on npmjs.com pointing at this repo + workflow file. This is
-  #     a one-time setup performed in the npm web UI after the first
-  #     manual placeholder publish.
-  #   - The workflow uses `npm publish --provenance` so npm records
-  #     the build attestation alongside the tarball.
+  build-and-publish-platforms:
+    needs: release-please
+    if: needs.release-please.outputs.releases_created == 'true'
+    permissions:
+      contents: read
+      id-token: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: aarch64-apple-darwin
+            os: macos-14
+            pkg: cross-env-rs-darwin-arm64
+            use_cross: false
+          - target: x86_64-apple-darwin
+            os: macos-14
+            pkg: cross-env-rs-darwin-x64
+            use_cross: false
+          - target: x86_64-unknown-linux-gnu
+            os: ubuntu-22.04
+            pkg: cross-env-rs-linux-x64-gnu
+            use_cross: true
+          - target: x86_64-unknown-linux-musl
+            os: ubuntu-22.04
+            pkg: cross-env-rs-linux-x64-musl
+            use_cross: true
+          - target: aarch64-unknown-linux-gnu
+            os: ubuntu-22.04
+            pkg: cross-env-rs-linux-arm64-gnu
+            use_cross: true
+          - target: aarch64-unknown-linux-musl
+            os: ubuntu-22.04
+            pkg: cross-env-rs-linux-arm64-musl
+            use_cross: true
+          - target: x86_64-pc-windows-msvc
+            os: windows-2022
+            pkg: cross-env-rs-windows-x64
+            use_cross: false
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.use_cross && '' || matrix.target }}
+
+      - name: Sync Rust workspace version with npm package version
+        shell: bash
+        run: |
+          node -e '
+            const fs = require("fs");
+            const v = require("./npm/cross-env-rs/package.json").version;
+            const f = "Cargo.toml";
+            const t = fs.readFileSync(f, "utf8");
+            const out = t.replace(/^version = ".*"$/m, `version = "${v}"`);
+            fs.writeFileSync(f, out);
+            console.log("Synced", f, "workspace version to", v);
+          '
+          grep "^version" Cargo.toml
+
+      - name: Install cross
+        if: matrix.use_cross
+        run: cargo install cross --locked --git https://github.com/cross-rs/cross
+
+      - name: Build
+        shell: bash
+        run: |
+          if [ "${{ matrix.use_cross }}" = "true" ]; then
+            cross build --release --target ${{ matrix.target }}
+          else
+            cargo build --release --target ${{ matrix.target }}
+          fi
+
+      - name: Stage binary into platform package
+        shell: bash
+        run: |
+          mkdir -p "npm/${{ matrix.pkg }}/bin"
+          if [[ "${{ matrix.target }}" == *windows* ]]; then
+            cp "target/${{ matrix.target }}/release/cross-env.exe" "npm/${{ matrix.pkg }}/bin/"
+            cp "target/${{ matrix.target }}/release/cross-env-shell.exe" "npm/${{ matrix.pkg }}/bin/"
+          else
+            cp "target/${{ matrix.target }}/release/cross-env" "npm/${{ matrix.pkg }}/bin/"
+            cp "target/${{ matrix.target }}/release/cross-env-shell" "npm/${{ matrix.pkg }}/bin/"
+            chmod +x "npm/${{ matrix.pkg }}/bin/"*
+          fi
+          ls -la "npm/${{ matrix.pkg }}/bin/"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          registry-url: https://registry.npmjs.org
+
+      - name: Publish platform package
+        working-directory: npm/${{ matrix.pkg }}
+        run: npm publish --provenance --access public
+
+  publish-main:
+    needs: [release-please, build-and-publish-platforms]
+    if: needs.release-please.outputs.releases_created == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          registry-url: https://registry.npmjs.org
+      - name: Publish main package
+        working-directory: npm/cross-env-rs
+        run: npm publish --provenance --access public
