@@ -33,7 +33,7 @@ This repository hosts the in-progress port. **No release yet** — the npm packa
 | Linux x64 (musl)      | `cross-env-rs-linux-x64-musl`        |
 | Linux arm64 (glibc)   | `cross-env-rs-linux-arm64-gnu`       |
 | Linux arm64 (musl)    | `cross-env-rs-linux-arm64-musl`      |
-| Windows x64           | `cross-env-rs-win32-x64`             |
+| Windows x64           | `cross-env-rs-windows-x64`           |
 
 > **Not yet supported**: `win32-arm64`. Tracked as a follow-up; if you need it, please open an issue.
 

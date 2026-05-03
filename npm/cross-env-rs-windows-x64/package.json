@@ -1,5 +1,5 @@
 {
-  "name": "cross-env-rs-win32-x64",
+  "name": "cross-env-rs-windows-x64",
   "version": "0.0.1-placeholder.0",
   "description": "Windows x64 native binary for cross-env-rs. Placeholder — real binary ships with 0.1.0.",
   "license": "MIT",
@@ -7,7 +7,7 @@
   "repository": {
     "type": "git",
     "url": "git+https://github.com/Segodnya/cross-env-rs.git",
-    "directory": "npm/cross-env-rs-win32-x64"
+    "directory": "npm/cross-env-rs-windows-x64"
   },
   "homepage": "https://github.com/Segodnya/cross-env-rs#readme",
   "bugs": {

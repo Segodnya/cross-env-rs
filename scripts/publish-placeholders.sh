@@ -27,7 +27,7 @@ PLATFORM_PKGS=(
   cross-env-rs-linux-x64-musl
   cross-env-rs-linux-arm64-gnu
   cross-env-rs-linux-arm64-musl
-  cross-env-rs-win32-x64
+  cross-env-rs-windows-x64
 )
 
 publish_one() {
