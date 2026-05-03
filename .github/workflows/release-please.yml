@@ -1,0 +1,45 @@
+name: release-please
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+  pull-requests: write
+  id-token: write
+
+jobs:
+  release-please:
+    runs-on: ubuntu-latest
+    outputs:
+      releases_created: ${{ steps.release.outputs.releases_created }}
+      paths_released: ${{ steps.release.outputs.paths_released }}
+    steps:
+      - uses: googleapis/release-please-action@v4
+        id: release
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
+
+  # Publish step is intentionally absent until the 0.1.0 milestone.
+  #
+  # When the Rust crate and the cross-build matrix land, add a `publish`
+  # job here gated on `needs.release-please.outputs.releases_created`
+  # that:
+  #   1. Runs the cross-build matrix and stages the binary into the
+  #      matching `npm/cross-env-rs-<platform>/` directory.
+  #   2. Runs `npm publish --provenance --access public` for each of
+  #      the eight packages.
+  #
+  # Authentication uses npm Trusted Publishing (OIDC) — no NPM_TOKEN
+  # secret. Requirements:
+  #   - `permissions: id-token: write` on this workflow (already set).
+  #   - Each of the eight packages has a Trusted Publisher configured
+  #     on npmjs.com pointing at this repo + workflow file. This is
+  #     a one-time setup performed in the npm web UI after the first
+  #     manual placeholder publish.
+  #   - The workflow uses `npm publish --provenance` so npm records
+  #     the build attestation alongside the tarball.
