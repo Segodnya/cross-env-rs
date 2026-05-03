@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.1](https://github.com/Segodnya/cross-env-rs/compare/v0.1.0...v0.1.1) (2026-05-03)
+
+
+### Features
+
+* **npm:** add usage section to package readme ([387e1d0](https://github.com/Segodnya/cross-env-rs/commit/387e1d059a8312e443bbedf931f12342183da880))
+
 ## 0.1.0 (2026-05-03)
 
 
