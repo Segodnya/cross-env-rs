@@ -1,6 +1,6 @@
 {
   "name": "cross-env-rs-linux-arm64-gnu",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "Linux arm64 (glibc) native binary for cross-env-rs.",
   "license": "MIT",
   "author": "Kira Kurentsov <immortalsteel@gmail.com>",
@@ -13,9 +13,15 @@
   "bugs": {
     "url": "https://github.com/Segodnya/cross-env-rs/issues"
   },
-  "os": ["linux"],
-  "cpu": ["arm64"],
-  "libc": ["glibc"],
+  "os": [
+    "linux"
+  ],
+  "cpu": [
+    "arm64"
+  ],
+  "libc": [
+    "glibc"
+  ],
   "engines": {
     "node": ">=14"
   },
