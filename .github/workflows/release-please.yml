@@ -101,6 +101,22 @@ jobs:
           '
           grep "^version" Cargo.toml
 
+      - name: Sync platform package version with main package version
+        shell: bash
+        env:
+          PLATFORM_PKG: ${{ matrix.pkg }}
+        run: |
+          node -e '
+            const fs = require("fs");
+            const v = require("./npm/cross-env-rs/package.json").version;
+            const f = `npm/${process.env.PLATFORM_PKG}/package.json`;
+            const pkg = JSON.parse(fs.readFileSync(f, "utf8"));
+            pkg.version = v;
+            fs.writeFileSync(f, JSON.stringify(pkg, null, 2) + "\n");
+            console.log("Synced", f, "to", v);
+          '
+          grep '"version"' "npm/${PLATFORM_PKG}/package.json"
+
       - name: Install cross
         if: matrix.use_cross
         run: cargo install cross --locked --git https://github.com/cross-rs/cross
@@ -165,6 +181,25 @@ jobs:
           registry-url: https://registry.npmjs.org
       - name: Upgrade npm (Trusted Publishing requires >=11.5.1)
         run: npm install -g npm@latest
+      - name: Sync optionalDependencies versions to main package version
+        shell: bash
+        run: |
+          node -e '
+            const fs = require("fs");
+            const f = "npm/cross-env-rs/package.json";
+            const pkg = JSON.parse(fs.readFileSync(f, "utf8"));
+            const v = pkg.version;
+            for (const k of Object.keys(pkg.optionalDependencies || {})) {
+              pkg.optionalDependencies[k] = v;
+            }
+            fs.writeFileSync(f, JSON.stringify(pkg, null, 2) + "\n");
+            console.log("Synced optionalDependencies in", f, "to", v);
+          '
+          node -e '
+            const p = require("./npm/cross-env-rs/package.json");
+            console.log("version:", p.version);
+            console.log("optionalDependencies:", p.optionalDependencies);
+          '
       - name: Publish main package
         working-directory: npm/cross-env-rs
         run: npm publish --provenance --access public
