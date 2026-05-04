@@ -179,6 +179,92 @@ fn row_04_value_contains_equals() {
         .stdout("ROW_04=a=b=c\n");
 }
 
+// ---- Matrix row 6: `--version` / `--help` flags ----
+// Both bins recognise --help/-h and --version/-V only as the FIRST positional
+// arg, exit 0, and print to stdout. Empty args print help to stderr and exit 1.
+#[test]
+fn row_06_help_long_flag_prints_usage_to_stdout() {
+    Command::cargo_bin("cross-env")
+        .expect("cross-env binary present")
+        .arg("--help")
+        .assert()
+        .success()
+        .stdout(contains("Usage: cross-env "));
+}
+
+#[test]
+fn row_06_help_short_flag_matches_long() {
+    Command::cargo_bin("cross-env")
+        .expect("cross-env binary present")
+        .arg("-h")
+        .assert()
+        .success()
+        .stdout(contains("Usage: cross-env "));
+}
+
+#[test]
+fn row_06_version_long_flag_prints_pkg_version() {
+    Command::cargo_bin("cross-env")
+        .expect("cross-env binary present")
+        .arg("--version")
+        .assert()
+        .success()
+        .stdout(format!("{}\n", env!("CARGO_PKG_VERSION")));
+}
+
+#[test]
+fn row_06_version_short_flag_matches_long() {
+    Command::cargo_bin("cross-env")
+        .expect("cross-env binary present")
+        .arg("-V")
+        .assert()
+        .success()
+        .stdout(format!("{}\n", env!("CARGO_PKG_VERSION")));
+}
+
+#[test]
+fn row_06_shell_help_mentions_shell_binary() {
+    Command::cargo_bin("cross-env-shell")
+        .expect("cross-env-shell binary present")
+        .arg("--help")
+        .assert()
+        .success()
+        .stdout(contains("Usage: cross-env-shell "));
+}
+
+#[test]
+fn row_06_shell_version_matches_pkg_version() {
+    Command::cargo_bin("cross-env-shell")
+        .expect("cross-env-shell binary present")
+        .arg("--version")
+        .assert()
+        .success()
+        .stdout(format!("{}\n", env!("CARGO_PKG_VERSION")));
+}
+
+#[test]
+fn row_06_no_args_prints_help_to_stderr_and_exits_nonzero() {
+    Command::cargo_bin("cross-env")
+        .expect("cross-env binary present")
+        .assert()
+        .code(1)
+        .stderr(contains("Usage: cross-env "));
+}
+
+#[test]
+fn row_06_help_only_recognised_as_first_arg() {
+    // `FOO=bar --help` — `--help` is not the first arg, so dispatch does not
+    // short-circuit. parse() takes FOO=bar as env, `--help` as command;
+    // which::which("--help") fails → exit 127 with an error on stderr.
+    Command::cargo_bin("cross-env")
+        .expect("cross-env binary present")
+        .arg("FOO=bar")
+        .arg("--help")
+        .assert()
+        .code(127)
+        .stderr(contains("cross-env:"));
+}
+
 // ---- Matrix row 5: `--` argument terminator ----
 // After `--`, env-parsing stops: subsequent KEY=VAL-shaped tokens reach the
 // child as literal args, not as environment variables.
