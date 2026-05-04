@@ -1,0 +1,11 @@
+[package]
+name = "print-env-fixture"
+version = "0.0.0"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+
+[[bin]]
+name = "print-env"
+path = "src/main.rs"

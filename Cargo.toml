@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["crates/cross-env-rs"]
+members = ["crates/cross-env-rs", "crates/test-fixtures/print-env"]
 
 [workspace.package]
 version = "0.0.0"
