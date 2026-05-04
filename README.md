@@ -78,11 +78,13 @@ This package is a port — every release is graded against upstream `cross-env` 
 
 > **Row 12 caveat:** signal delivery follows OS process-group semantics (matching upstream Node `cross-env`). Terminal `Ctrl+C` reaches both wrapper and child. Programmatic `kill <wrapper-pid>` (without targeting the group) does not propagate to the child — the wrapper dies, the child is orphaned. Use `kill -- -<wrapper-pgid>` for programmatic group kills.
 
+> **Row 16 caveat:** PATHEXT resolution is provided by the `which` crate. The test is `#[cfg(windows)]`-gated, so it does not run in the macOS dev loop — it is exercised only when `cargo test` is run on Windows (release smoke). `.ps1` is intentionally not covered: PowerShell scripts are not directly OS-executable and would need an explicit `pwsh -File <script>.ps1` invocation, the same as upstream Node `cross-env`.
+
 ### Platform
 
 | #  | Feature | Status | Test |
 | -- | ------- | :----: | ---- |
-| 16 | Windows `.cmd` / `.bat` / `.ps1` + PATHEXT | ❓ | — |
+| 16 | Windows `.cmd` / `.bat` + PATHEXT | ✅ | `row_16_resolves_dot_cmd_via_pathext` |
 | 17 | musl/glibc autodispatch (JS shim) | ❓ | manual smoke only |
 
 ### JS shim

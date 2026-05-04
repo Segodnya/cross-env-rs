@@ -179,6 +179,47 @@ fn row_04_value_contains_equals() {
         .stdout("ROW_04=a=b=c\n");
 }
 
+// ---- Matrix row 16: Windows `.cmd` / `.bat` + PATHEXT ----
+// `DirectExecutor` calls `which::which` which, on Windows, walks `%PATHEXT%`
+// and resolves an extensionless name to its `.exe`/`.cmd`/`.bat`/... target.
+// We exercise that end-to-end by dropping a `.cmd` script into a temp dir,
+// prepending it to PATH, and invoking cross-env with the bare script name.
+#[cfg(windows)]
+#[test]
+fn row_16_resolves_dot_cmd_via_pathext() {
+    use std::ffi::OsString;
+    use std::fs;
+
+    let tmp_root = std::env::temp_dir().join(format!(
+        "cross-env-rs-row16-{}-{}",
+        std::process::id(),
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|d| d.as_nanos())
+            .unwrap_or(0)
+    ));
+    fs::create_dir_all(&tmp_root).expect("create temp dir");
+    let cmd_path = tmp_root.join("row16script.cmd");
+    fs::write(&cmd_path, "@echo ROW_16=%ROW_16%\r\n").expect("write .cmd");
+
+    let parent_path = std::env::var_os("PATH").unwrap_or_default();
+    let mut new_path = OsString::from(&tmp_root);
+    new_path.push(";");
+    new_path.push(&parent_path);
+
+    Command::cargo_bin("cross-env")
+        .expect("cross-env binary present")
+        .env("PATH", new_path)
+        .arg("ROW_16=hello")
+        // Bare name (no extension) — PATHEXT walk in `which` resolves to .cmd.
+        .arg("row16script")
+        .assert()
+        .success()
+        .stdout(contains("ROW_16=hello"));
+
+    let _ = fs::remove_dir_all(&tmp_root);
+}
+
 // ---- Matrix row 9: PATH-list separator `:` ↔ `;` auto-translate ----
 // For the upstream whitelist (PATH, NODE_PATH; case-insensitive), the foreign
 // list separator is replaced with the native one before applying to the child.
