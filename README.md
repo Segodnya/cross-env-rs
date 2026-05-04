@@ -52,7 +52,7 @@ This package is a port — every release is graded against upstream `cross-env` 
 | 2 | Multiple env vars before command | ✅ | `row_02_multiple_kv_pairs` |
 | 3 | Empty value (`FOO=`) | ✅ | `row_03_empty_value_is_set_but_empty` |
 | 4 | Value contains `=` (`FOO=a=b`) | ✅ | `row_04_value_contains_equals` |
-| 5 | `--` argument terminator | ❌ | — |
+| 5 | `--` argument terminator | ✅ | `row_05_*` |
 | 6 | `--version` / `--help` flags | ❌ | — |
 
 ### Variable expansion

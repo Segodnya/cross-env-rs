@@ -107,6 +107,10 @@ pub fn parse(input: Vec<OsString>) -> Result<Parsed> {
     let mut command: Option<OsString> = None;
 
     for arg in iter.by_ref() {
+        if arg == "--" {
+            command = iter.next();
+            break;
+        }
         if let Some((key, value)) = split_kv(&arg) {
             envs.push((key, value));
             continue;
@@ -201,6 +205,20 @@ mod tests {
     fn missing_command_errors() {
         assert!(parse(vec![os("FOO=bar")]).is_err());
         assert!(parse(vec![]).is_err());
+    }
+
+    #[test]
+    fn double_dash_terminates_env_parsing() {
+        let parsed = parse(vec![os("FOO=bar"), os("--"), os("BAZ=literal"), os("arg1")]).unwrap();
+        assert_eq!(parsed.envs, vec![(os("FOO"), os("bar"))]);
+        assert_eq!(parsed.command, os("BAZ=literal"));
+        assert_eq!(parsed.args, vec![os("arg1")]);
+    }
+
+    #[test]
+    fn double_dash_with_no_command_errors() {
+        assert!(parse(vec![os("FOO=bar"), os("--")]).is_err());
+        assert!(parse(vec![os("--")]).is_err());
     }
 
     #[test]

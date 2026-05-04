@@ -179,6 +179,38 @@ fn row_04_value_contains_equals() {
         .stdout("ROW_04=a=b=c\n");
 }
 
+// ---- Matrix row 5: `--` argument terminator ----
+// After `--`, env-parsing stops: subsequent KEY=VAL-shaped tokens reach the
+// child as literal args, not as environment variables.
+#[test]
+fn row_05_double_dash_stops_env_parsing() {
+    Command::cargo_bin("cross-env")
+        .expect("cross-env binary present")
+        .arg("ROW_05=applied")
+        .arg("--")
+        .arg(print_env_bin())
+        .arg("ROW_05_LOOKS_LIKE=kv_but_isnt")
+        .assert()
+        .success()
+        // print-env queries the literal key "ROW_05_LOOKS_LIKE=kv_but_isnt"
+        // (no such env var) and prints "<unset>".
+        .stdout("ROW_05_LOOKS_LIKE=kv_but_isnt=<unset>\n");
+}
+
+#[test]
+fn row_05_double_dash_applied_envs_still_reach_child() {
+    // Sanity: env vars set BEFORE `--` are still applied to the child.
+    Command::cargo_bin("cross-env")
+        .expect("cross-env binary present")
+        .arg("ROW_05_VAR=hello")
+        .arg("--")
+        .arg(print_env_bin())
+        .arg("ROW_05_VAR")
+        .assert()
+        .success()
+        .stdout("ROW_05_VAR=hello\n");
+}
+
 // ---- Matrix row 12: SIGINT/SIGTERM forwarding to child ----
 // cross-env, like upstream Node-cross-env, installs no explicit signal handler.
 // A terminal signal (Ctrl+C) is delivered to the whole process group, so both
