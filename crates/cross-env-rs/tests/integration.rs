@@ -124,6 +124,8 @@ fn row_11_signal_killed_exit_via_no_shell_unix() {
 #[cfg(unix)]
 #[test]
 fn row_15_no_shell_passes_dollar_literal() {
+    // print-env запрашивает ключ "$ROW_15" (буквально, не разворачивается),
+    // в env его нет → <unset>.
     Command::cargo_bin("cross-env")
         .expect("cross-env binary present")
         .arg("ROW_15=hello")
@@ -131,12 +133,13 @@ fn row_15_no_shell_passes_dollar_literal() {
         .arg("$ROW_15")
         .assert()
         .success()
-        .stdout("$ROW_15=\n");
+        .stdout("$ROW_15=<unset>\n");
 }
 
 #[cfg(unix)]
 #[test]
 fn row_15_shell_expands_dollar() {
+    // sh раскрывает $ROW_15 → "hello", print-env запрашивает ключ "hello" → <unset>.
     let cmd = format!("{} $ROW_15", print_env_bin().display());
     Command::cargo_bin("cross-env-shell")
         .expect("cross-env-shell binary present")
@@ -144,5 +147,34 @@ fn row_15_shell_expands_dollar() {
         .arg(cmd)
         .assert()
         .success()
-        .stdout("hello=\n");
+        .stdout("hello=<unset>\n");
+}
+
+// ---- Matrix row 3: Empty value (`FOO=`) ----
+// `KEY=` должен установить переменную в пустую строку (set-but-empty),
+// что отличается от unset.
+#[test]
+fn row_03_empty_value_is_set_but_empty() {
+    Command::cargo_bin("cross-env")
+        .expect("cross-env binary present")
+        .arg("ROW_03=")
+        .arg(print_env_bin())
+        .arg("ROW_03")
+        .assert()
+        .success()
+        .stdout("ROW_03=\n");
+}
+
+// ---- Matrix row 4: Value contains `=` (`FOO=a=b`) ----
+// split_kv должен делить по ПЕРВОМУ `=`: key=ROW_04, value=a=b=c.
+#[test]
+fn row_04_value_contains_equals() {
+    Command::cargo_bin("cross-env")
+        .expect("cross-env binary present")
+        .arg("ROW_04=a=b=c")
+        .arg(print_env_bin())
+        .arg("ROW_04")
+        .assert()
+        .success()
+        .stdout("ROW_04=a=b=c\n");
 }

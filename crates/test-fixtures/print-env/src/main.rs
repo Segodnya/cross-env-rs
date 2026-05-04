@@ -1,5 +1,6 @@
 // Test fixture binary used by `cross-env-rs` integration tests.
 // Prints requested environment variables in `KEY=VALUE` form, one per line.
+// Distinguishes set-but-empty (`KEY=`) from unset (`KEY=<unset>`).
 // With no arguments, prints all environment variables.
 
 fn main() {
@@ -11,6 +12,9 @@ fn main() {
         return;
     }
     for k in &args {
-        println!("{}={}", k, std::env::var(k).unwrap_or_default());
+        match std::env::var_os(k) {
+            Some(v) => println!("{}={}", k, v.to_string_lossy()),
+            None => println!("{}=<unset>", k),
+        }
     }
 }
