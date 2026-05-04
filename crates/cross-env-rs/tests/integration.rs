@@ -179,6 +179,48 @@ fn row_04_value_contains_equals() {
         .stdout("ROW_04=a=b=c\n");
 }
 
+// ---- Matrix row 7: `$VAR` / `${VAR}` substitution ----
+// Values like `$PARENT_VAR` and `${PARENT_VAR}` are expanded from the parent
+// process env before being applied to the child. Unset vars expand to empty.
+#[test]
+fn row_07_unbraced_dollar_var_expands_from_parent() {
+    Command::cargo_bin("cross-env")
+        .expect("cross-env binary present")
+        .env("ROW_07_PARENT", "expanded")
+        .arg("ROW_07_OUT=$ROW_07_PARENT/tail")
+        .arg(print_env_bin())
+        .arg("ROW_07_OUT")
+        .assert()
+        .success()
+        .stdout("ROW_07_OUT=expanded/tail\n");
+}
+
+#[test]
+fn row_07_braced_dollar_var_expands_from_parent() {
+    Command::cargo_bin("cross-env")
+        .expect("cross-env binary present")
+        .env("ROW_07_BR", "abc")
+        .arg("ROW_07_OUT=${ROW_07_BR}xyz")
+        .arg(print_env_bin())
+        .arg("ROW_07_OUT")
+        .assert()
+        .success()
+        .stdout("ROW_07_OUT=abcxyz\n");
+}
+
+#[test]
+fn row_07_unset_var_expands_to_empty() {
+    Command::cargo_bin("cross-env")
+        .expect("cross-env binary present")
+        .env_remove("ROW_07_MISSING")
+        .arg("ROW_07_OUT=a${ROW_07_MISSING}b")
+        .arg(print_env_bin())
+        .arg("ROW_07_OUT")
+        .assert()
+        .success()
+        .stdout("ROW_07_OUT=ab\n");
+}
+
 // ---- Matrix row 6: `--version` / `--help` flags ----
 // Both bins recognise --help/-h and --version/-V only as the FIRST positional
 // arg, exit 0, and print to stdout. Empty args print help to stderr and exit 1.

@@ -59,7 +59,7 @@ This package is a port — every release is graded against upstream `cross-env` 
 
 | # | Feature | Status | Test |
 | - | ------- | :----: | ---- |
-| 7 | `$VAR` / `${VAR}` substitution | ❌ | — |
+| 7 | `$VAR` / `${VAR}` substitution | ✅ | `row_07_*` |
 | 8 | `%VAR%` (Windows-style) auto-translate | ❌ | — |
 | 9 | PATH-list separator `:` ↔ `;` auto-translate | ❌ | — |
 
