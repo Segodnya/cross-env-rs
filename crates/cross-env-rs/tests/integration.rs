@@ -179,6 +179,35 @@ fn row_04_value_contains_equals() {
         .stdout("ROW_04=a=b=c\n");
 }
 
+// ---- Matrix row 8: `%VAR%` (Windows-style) auto-translate ----
+// `%VAR%` is expanded from the parent process env on any platform — same
+// `package.json` script works on both Windows shells and Unix shells.
+#[test]
+fn row_08_percent_var_percent_expands_from_parent() {
+    Command::cargo_bin("cross-env")
+        .expect("cross-env binary present")
+        .env("ROW_08_PARENT", "winval")
+        .arg("ROW_08_OUT=%ROW_08_PARENT%/tail")
+        .arg(print_env_bin())
+        .arg("ROW_08_OUT")
+        .assert()
+        .success()
+        .stdout("ROW_08_OUT=winval/tail\n");
+}
+
+#[test]
+fn row_08_unset_percent_var_expands_to_empty() {
+    Command::cargo_bin("cross-env")
+        .expect("cross-env binary present")
+        .env_remove("ROW_08_MISSING")
+        .arg("ROW_08_OUT=a%ROW_08_MISSING%b")
+        .arg(print_env_bin())
+        .arg("ROW_08_OUT")
+        .assert()
+        .success()
+        .stdout("ROW_08_OUT=ab\n");
+}
+
 // ---- Matrix row 7: `$VAR` / `${VAR}` substitution ----
 // Values like `$PARENT_VAR` and `${PARENT_VAR}` are expanded from the parent
 // process env before being applied to the child. Unset vars expand to empty.
