@@ -33,13 +33,19 @@ impl ExitInfo {
         ExitInfo::Unknown
     }
 
-    /// Map to the integer exit code we propagate to the OS.
+    /// Map to the OS-level process exit code (`u8`).
     /// `Signal(s)` → `128 + s` (POSIX convention). `Unknown` → `1`.
-    pub fn to_exit_code(&self) -> i32 {
-        match self {
+    /// Anything outside `0..=255` is clamped to `1`.
+    pub fn to_process_exit_code(&self) -> u8 {
+        let code: i32 = match self {
             ExitInfo::Code(c) => *c,
             ExitInfo::Signal(s) => 128 + *s,
             ExitInfo::Unknown => 1,
+        };
+        if (0..=255).contains(&code) {
+            code as u8
+        } else {
+            1
         }
     }
 }
@@ -130,18 +136,29 @@ mod tests {
 
     #[test]
     fn exit_code_from_code() {
-        assert_eq!(ExitInfo::Code(0).to_exit_code(), 0);
-        assert_eq!(ExitInfo::Code(42).to_exit_code(), 42);
+        assert_eq!(ExitInfo::Code(0).to_process_exit_code(), 0);
+        assert_eq!(ExitInfo::Code(42).to_process_exit_code(), 42);
+        assert_eq!(ExitInfo::Code(255).to_process_exit_code(), 255);
     }
 
     #[test]
     fn exit_code_from_signal() {
-        assert_eq!(ExitInfo::Signal(9).to_exit_code(), 137);
-        assert_eq!(ExitInfo::Signal(15).to_exit_code(), 143);
+        assert_eq!(ExitInfo::Signal(9).to_process_exit_code(), 137);
+        assert_eq!(ExitInfo::Signal(15).to_process_exit_code(), 143);
     }
 
     #[test]
     fn exit_code_from_unknown() {
-        assert_eq!(ExitInfo::Unknown.to_exit_code(), 1);
+        assert_eq!(ExitInfo::Unknown.to_process_exit_code(), 1);
+    }
+
+    // Clamp policy: anything outside the u8 range collapses to 1.
+    #[test]
+    fn exit_code_clamps_out_of_range() {
+        assert_eq!(ExitInfo::Code(-1).to_process_exit_code(), 1);
+        assert_eq!(ExitInfo::Code(256).to_process_exit_code(), 1);
+        assert_eq!(ExitInfo::Code(300).to_process_exit_code(), 1);
+        // 128 + 200 = 328 → out of range → 1.
+        assert_eq!(ExitInfo::Signal(200).to_process_exit_code(), 1);
     }
 }
