@@ -85,13 +85,13 @@ This package is a port — every release is graded against upstream `cross-env` 
 | #  | Feature | Status | Test |
 | -- | ------- | :----: | ---- |
 | 16 | Windows `.cmd` / `.bat` + PATHEXT | ✅ | `row_16_resolves_dot_cmd_via_pathext` |
-| 17 | musl/glibc autodispatch (JS shim) | ❓ | manual smoke only |
+| 17 | musl/glibc autodispatch (JS shim) | ✅ | `shim.test.js` (row 17) |
 
 ### JS shim
 
 | #  | Feature | Status | Test |
 | -- | ------- | :----: | ---- |
-| 18 | Unsupported platform error message | ❓ | — |
+| 18 | Unsupported platform error message | ✅ | `shim.test.js` (row 18) |
 
 Each row will be backed by an automated test in `crates/cross-env-rs/tests/integration.rs` (Rust binary behaviour) or `npm/cross-env-rs/test/shim.test.js` (JS shim). Rule: a PR without a test does not move a row out of ❓.
 
@@ -142,7 +142,12 @@ This enables:
 - **`pre-commit`**: `cargo fmt --check` + `cargo test --workspace` + JS shim tests when present.
 - **`pre-push`**: same as `pre-commit` plus `cargo clippy --workspace --all-targets -- -D warnings`.
 
-Tests are pure Rust — `cargo test --workspace` is enough. The integration suite uses a small workspace-internal fixture (`crates/test-fixtures/print-env`) that `escargot` builds on demand.
+Two test surfaces:
+
+- **Rust** — `cargo test --workspace` covers the binary behaviour (parsing, expansion, executor adapters, end-to-end `cross-env` / `cross-env-shell` invocations). The integration suite uses a small workspace-internal fixture (`crates/test-fixtures/print-env`) that `escargot` builds on demand.
+- **JS shim** — `node --test npm/cross-env-rs/test/*.test.js` covers `lib/run.js` (platform→package mapping, libc detection, error paths) by injecting fakes via the seam-based `run({ platform, arch, libc, spawn, exit, ... })` API. No real child process is spawned; no real fs/require lookups.
+
+Both surfaces are wired into the git hooks, so `git commit` and `git push` run them automatically.
 
 ## Contributing
 

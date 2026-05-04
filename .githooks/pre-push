@@ -15,9 +15,13 @@ echo "[pre-push] cargo test --workspace"
 cargo test --workspace --quiet
 
 SHIM_DIR="npm/cross-env-rs/test"
-if [ -d "$SHIM_DIR" ] && find "$SHIM_DIR" -name '*.test.js' -type f -print -quit | grep -q .; then
-    echo "[pre-push] node --test $SHIM_DIR"
-    node --test "$SHIM_DIR"
+if [ -d "$SHIM_DIR" ]; then
+    SHIM_TESTS=$(find "$SHIM_DIR" -name '*.test.js' -type f)
+    if [ -n "$SHIM_TESTS" ]; then
+        echo "[pre-push] node --test (shim)"
+        # shellcheck disable=SC2086
+        node --test $SHIM_TESTS
+    fi
 fi
 
 echo "[pre-push] ok"
