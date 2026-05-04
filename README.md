@@ -69,12 +69,14 @@ This package is a port — every release is graded against upstream `cross-env` 
 | -- | ------- | :----: | ---- |
 | 10 | Exit code propagation | ✅ | `row_10_exit_code_propagation` |
 | 11 | Signal-killed exit code (128 + sig) | ⚠️ | `row_11_*_unix` |
-| 12 | SIGINT / SIGTERM forwarding to child | ❓ | — |
-| 13 | Stdio inheritance (stdin/stdout/stderr) | ❓ | — |
-| 14 | Parent env passthrough + per-call override | ❓ | — |
+| 12 | SIGINT / SIGTERM forwarding to child | ✅ | `row_12_pgroup_signal_kills_child_unix` |
+| 13 | Stdio inheritance (stdin/stdout/stderr) | ✅ | `row_13_stdin_inherits_through_cross_env` |
+| 14 | Parent env passthrough + per-call override | ✅ | `row_14_*` |
 | 15 | `cross-env` (no shell) vs `cross-env-shell` | ✅ | `row_15_*` |
 
 > **Row 11 caveat:** Unix paths return `128 + signal` as upstream does. Windows currently returns `1` for any abnormal termination — tracked as a follow-up.
+
+> **Row 12 caveat:** signal delivery follows OS process-group semantics (matching upstream Node `cross-env`). Terminal `Ctrl+C` reaches both wrapper and child. Programmatic `kill <wrapper-pid>` (without targeting the group) does not propagate to the child — the wrapper dies, the child is orphaned. Use `kill -- -<wrapper-pgid>` for programmatic group kills.
 
 ### Platform
 

@@ -68,6 +68,7 @@ dependencies = [
  "anyhow",
  "assert_cmd",
  "escargot",
+ "libc",
  "predicates",
  "which",
 ]

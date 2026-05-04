@@ -80,7 +80,7 @@ fn row_02_multiple_kv_pairs() {
 }
 
 // ---- Matrix row 10: Exit code propagation ----
-// Уходим через cross-env-shell, чтобы `exit 42` отработало портативно (sh / cmd).
+// Use cross-env-shell so `exit 42` runs portably across sh / cmd.
 #[test]
 fn row_10_exit_code_propagation() {
     Command::cargo_bin("cross-env-shell")
@@ -92,8 +92,8 @@ fn row_10_exit_code_propagation() {
 }
 
 // ---- Matrix row 11: Signal-killed exit (128+sig) — Unix only ----
-// Windows тут возвращает «1» (см. caveat в README) — отдельный тест на это
-// не нужен, поведение известно и зафиксировано.
+// Windows returns `1` here (see README caveat); no separate Windows test
+// needed — the behaviour is known and documented.
 #[cfg(unix)]
 #[test]
 fn row_11_signal_killed_exit_via_shell_unix() {
@@ -119,13 +119,13 @@ fn row_11_signal_killed_exit_via_no_shell_unix() {
 }
 
 // ---- Matrix row 15: cross-env (no shell) vs cross-env-shell ----
-// no-shell: `$ROW_15` доходит до child буквально.
-// shell: sh раскрывает `$ROW_15` до значения переменной перед запуском.
+// no-shell: `$ROW_15` reaches the child literally.
+// shell: sh expands `$ROW_15` to its value before invoking the command.
 #[cfg(unix)]
 #[test]
 fn row_15_no_shell_passes_dollar_literal() {
-    // print-env запрашивает ключ "$ROW_15" (буквально, не разворачивается),
-    // в env его нет → <unset>.
+    // print-env queries the literal key "$ROW_15" (no expansion);
+    // it is not in env → <unset>.
     Command::cargo_bin("cross-env")
         .expect("cross-env binary present")
         .arg("ROW_15=hello")
@@ -139,7 +139,7 @@ fn row_15_no_shell_passes_dollar_literal() {
 #[cfg(unix)]
 #[test]
 fn row_15_shell_expands_dollar() {
-    // sh раскрывает $ROW_15 → "hello", print-env запрашивает ключ "hello" → <unset>.
+    // sh expands $ROW_15 → "hello"; print-env then queries the key "hello" → <unset>.
     let cmd = format!("{} $ROW_15", print_env_bin().display());
     Command::cargo_bin("cross-env-shell")
         .expect("cross-env-shell binary present")
@@ -151,8 +151,8 @@ fn row_15_shell_expands_dollar() {
 }
 
 // ---- Matrix row 3: Empty value (`FOO=`) ----
-// `KEY=` должен установить переменную в пустую строку (set-but-empty),
-// что отличается от unset.
+// `KEY=` must set the variable to an empty string (set-but-empty),
+// distinct from unset.
 #[test]
 fn row_03_empty_value_is_set_but_empty() {
     Command::cargo_bin("cross-env")
@@ -166,7 +166,7 @@ fn row_03_empty_value_is_set_but_empty() {
 }
 
 // ---- Matrix row 4: Value contains `=` (`FOO=a=b`) ----
-// split_kv должен делить по ПЕРВОМУ `=`: key=ROW_04, value=a=b=c.
+// split_kv must split on the FIRST `=`: key=ROW_04, value=a=b=c.
 #[test]
 fn row_04_value_contains_equals() {
     Command::cargo_bin("cross-env")
@@ -177,4 +177,111 @@ fn row_04_value_contains_equals() {
         .assert()
         .success()
         .stdout("ROW_04=a=b=c\n");
+}
+
+// ---- Matrix row 12: SIGINT/SIGTERM forwarding to child ----
+// cross-env, like upstream Node-cross-env, installs no explicit signal handler.
+// A terminal signal (Ctrl+C) is delivered to the whole process group, so both
+// cross-env and the child receive it simultaneously — both die. wait() from
+// outside observes cross-env as signal-killed (status.code()==None,
+// status.signal()==SIGTERM). The test kills the whole pgroup, asserts cross-env
+// was actually signal-killed, and that wait() did not block waiting for the 30s
+// sleep (which would imply the child outlived the wrapper).
+#[cfg(unix)]
+#[test]
+fn row_12_pgroup_signal_kills_child_unix() {
+    use std::os::unix::process::{CommandExt, ExitStatusExt};
+    use std::process::Stdio;
+    use std::thread;
+    use std::time::{Duration, Instant};
+
+    let cross_env =
+        std::env::var_os("CARGO_BIN_EXE_cross-env").expect("CARGO_BIN_EXE_cross-env set by cargo");
+
+    let mut cmd = std::process::Command::new(cross_env);
+    cmd.arg("ROW_12=x")
+        .arg("sleep")
+        .arg("30")
+        .stdin(Stdio::null())
+        .stdout(Stdio::null())
+        .stderr(Stdio::null());
+    // Isolate cross-env (and its sleep child) in a fresh pgroup so our SIGTERM
+    // does not leak into the test runner.
+    unsafe {
+        cmd.pre_exec(|| {
+            libc::setpgid(0, 0);
+            Ok(())
+        });
+    }
+    let mut child = cmd.spawn().expect("spawn cross-env");
+
+    let pgid = child.id() as i32;
+
+    // Give cross-env time to fork sleep into our pgroup.
+    thread::sleep(Duration::from_millis(300));
+
+    unsafe {
+        let rc = libc::killpg(pgid, libc::SIGTERM);
+        assert_eq!(rc, 0, "killpg returned {rc}");
+    }
+
+    let started = Instant::now();
+    let status = child.wait().expect("wait cross-env");
+    let elapsed = started.elapsed();
+
+    assert_eq!(
+        status.signal(),
+        Some(libc::SIGTERM),
+        "cross-env should be killed by SIGTERM"
+    );
+    // If sleep had survived the signal, wait() would block for up to 30s.
+    assert!(
+        elapsed < Duration::from_secs(2),
+        "wait took too long after pgroup signal: {elapsed:?}"
+    );
+}
+
+// ---- Matrix row 13: Stdio inheritance ----
+// Stdin from the parent must reach the child through cross-env.
+// Stdout/stderr inheritance is implicitly verified by every `.stdout(...)` assertion.
+#[test]
+fn row_13_stdin_inherits_through_cross_env() {
+    Command::cargo_bin("cross-env")
+        .expect("cross-env binary present")
+        .arg("ROW_13=x")
+        .arg(print_env_bin())
+        .arg("--echo-stdin")
+        .write_stdin("piped through\n")
+        .assert()
+        .success()
+        .stdout("piped through\n");
+}
+
+// ---- Matrix row 14: Parent env passthrough + per-call override ----
+#[test]
+fn row_14_parent_env_passes_through() {
+    // Var is set in parent env, not on the cross-env CLI — the child must inherit it.
+    Command::cargo_bin("cross-env")
+        .expect("cross-env binary present")
+        .env("ROW_14_PARENT", "from_parent")
+        .arg("ROW_14_OWN=ignored")
+        .arg(print_env_bin())
+        .arg("ROW_14_PARENT")
+        .assert()
+        .success()
+        .stdout("ROW_14_PARENT=from_parent\n");
+}
+
+#[test]
+fn row_14_cli_value_overrides_parent_value() {
+    // Same name set in parent env and on the CLI — CLI value wins.
+    Command::cargo_bin("cross-env")
+        .expect("cross-env binary present")
+        .env("ROW_14_OVERRIDE", "from_parent")
+        .arg("ROW_14_OVERRIDE=from_cli")
+        .arg(print_env_bin())
+        .arg("ROW_14_OVERRIDE")
+        .assert()
+        .success()
+        .stdout("ROW_14_OVERRIDE=from_cli\n");
 }
