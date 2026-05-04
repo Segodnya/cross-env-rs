@@ -1,6 +1,6 @@
 // Test fixture binary used by `cross-env-rs` integration tests.
 // Modes:
-//   `print-env --echo-stdin`     — copy stdin to stdout (used by row 13 stdio test).
+//   `print-env --echo-stdin`     — copy stdin to stdout.
 //   `print-env KEY [KEY...]`     — print `KEY=value` per line; `<unset>` for missing.
 //   `print-env`                  — print all environment variables.
 

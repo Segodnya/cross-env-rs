@@ -1,10 +1,8 @@
 'use strict';
 
-// Conformance tests for the JS shim. Covers Compatibility-matrix rows:
-//   row 17: musl/glibc autodispatch on linux
-//   row 18: unsupported-platform error message + missing-package hint
-// All tests inject seams into `run()` — no real child process is spawned and
-// no real fs/require lookups are performed.
+// Tests for lib/run.js — platform→package mapping, libc detection, error paths.
+// Tests inject seams into `run()`; no real child process is spawned and no
+// real fs/require lookups are performed.
 
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
@@ -31,9 +29,7 @@ function captures() {
   };
 }
 
-// ---- Matrix row 17: musl/glibc autodispatch ----
-
-test('row 17: linux + libc=gnu maps to *-linux-<arch>-gnu', () => {
+test('linux + libc=gnu maps to *-linux-<arch>-gnu', () => {
   assert.equal(
     detectPlatformPackage({ platform: 'linux', arch: 'x64', libc: 'gnu' }),
     'cross-env-rs-linux-x64-gnu',
@@ -44,7 +40,7 @@ test('row 17: linux + libc=gnu maps to *-linux-<arch>-gnu', () => {
   );
 });
 
-test('row 17: linux + libc=musl maps to *-linux-<arch>-musl', () => {
+test('linux + libc=musl maps to *-linux-<arch>-musl', () => {
   assert.equal(
     detectPlatformPackage({ platform: 'linux', arch: 'x64', libc: 'musl' }),
     'cross-env-rs-linux-x64-musl',
@@ -55,7 +51,7 @@ test('row 17: linux + libc=musl maps to *-linux-<arch>-musl', () => {
   );
 });
 
-test('row 17: detectLinuxLibc returns gnu when process.report exposes glibc version', () => {
+test('detectLinuxLibc returns gnu when process.report exposes glibc version', () => {
   const result = detectLinuxLibc({
     getReport: () => ({ header: { glibcVersionRuntime: '2.31' } }),
     fileExists: () => false,
@@ -63,7 +59,7 @@ test('row 17: detectLinuxLibc returns gnu when process.report exposes glibc vers
   assert.equal(result, 'gnu');
 });
 
-test('row 17: detectLinuxLibc returns musl when /etc/alpine-release exists', () => {
+test('detectLinuxLibc returns musl when /etc/alpine-release exists', () => {
   const result = detectLinuxLibc({
     getReport: () => null,
     fileExists: (p) => p === '/etc/alpine-release',
@@ -71,7 +67,7 @@ test('row 17: detectLinuxLibc returns musl when /etc/alpine-release exists', () 
   assert.equal(result, 'musl');
 });
 
-test('row 17: detectLinuxLibc defaults to gnu when neither probe matches', () => {
+test('detectLinuxLibc defaults to gnu when neither probe matches', () => {
   const result = detectLinuxLibc({
     getReport: () => null,
     fileExists: () => false,
@@ -79,7 +75,7 @@ test('row 17: detectLinuxLibc defaults to gnu when neither probe matches', () =>
   assert.equal(result, 'gnu');
 });
 
-test('row 17: detectLinuxLibc tolerates throwing probes (defaults to gnu)', () => {
+test('detectLinuxLibc tolerates throwing probes (defaults to gnu)', () => {
   const result = detectLinuxLibc({
     getReport: () => { throw new Error('boom'); },
     fileExists: () => { throw new Error('boom'); },
@@ -87,7 +83,7 @@ test('row 17: detectLinuxLibc tolerates throwing probes (defaults to gnu)', () =
   assert.equal(result, 'gnu');
 });
 
-test('row 17: darwin platforms ignore libc', () => {
+test('darwin platforms ignore libc', () => {
   assert.equal(
     detectPlatformPackage({ platform: 'darwin', arch: 'arm64', libc: 'musl' }),
     'cross-env-rs-darwin-arm64',
@@ -98,22 +94,20 @@ test('row 17: darwin platforms ignore libc', () => {
   );
 });
 
-// ---- Matrix row 18: unsupported-platform error path ----
-
-test('row 18: detectPlatformPackage returns null for unknown platforms', () => {
+test('detectPlatformPackage returns null for unknown platforms', () => {
   assert.equal(detectPlatformPackage({ platform: 'haiku', arch: 'x64' }), null);
   assert.equal(detectPlatformPackage({ platform: 'sunos', arch: 'x64' }), null);
 });
 
-test('row 18: detectPlatformPackage returns null for win32-arm64 (not yet shipped)', () => {
+test('detectPlatformPackage returns null for win32-arm64 (not yet shipped)', () => {
   assert.equal(detectPlatformPackage({ platform: 'win32', arch: 'arm64' }), null);
 });
 
-test('row 18: detectPlatformPackage returns null for darwin-ia32', () => {
+test('detectPlatformPackage returns null for darwin-ia32', () => {
   assert.equal(detectPlatformPackage({ platform: 'darwin', arch: 'ia32' }), null);
 });
 
-test('row 18: run() exits 1 with a clear error when platform is unsupported', () => {
+test('run() exits 1 with a clear error when platform is unsupported', () => {
   const c = captures();
   run('cross-env', {
     platform: 'haiku',
@@ -134,7 +128,7 @@ test('row 18: run() exits 1 with a clear error when platform is unsupported', ()
   );
 });
 
-test('row 18: run() exits 1 with optionalDependencies hint when platform package is missing', () => {
+test('run() exits 1 with optionalDependencies hint when platform package is missing', () => {
   const c = captures();
   run('cross-env', {
     platform: 'darwin',
@@ -155,7 +149,7 @@ test('row 18: run() exits 1 with optionalDependencies hint when platform package
   assert.match(text, /optionalDependencies/);
 });
 
-test('row 18: run() exits 1 with corruption hint when binary file is missing', () => {
+test('run() exits 1 with corruption hint when binary file is missing', () => {
   const c = captures();
   run('cross-env', {
     platform: 'darwin',
@@ -171,8 +165,6 @@ test('row 18: run() exits 1 with corruption hint when binary file is missing', (
   assert.match(text, /binary not found at/);
   assert.match(text, /platform package may be corrupted/);
 });
-
-// ---- Spawn path semantics (happy path; supports rows 17/18 by exercising them) ----
 
 test('run() spawns the resolved binary, forwards argv, exits with child status', () => {
   const c = captures();

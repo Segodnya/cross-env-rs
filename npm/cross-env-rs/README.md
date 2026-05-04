@@ -23,23 +23,7 @@ The package installs `cross-env` and `cross-env-shell` binaries into `node_modul
 
 Set environment variables before a command, cross-platform — same syntax as upstream `cross-env`. `cross-env-shell` runs the command through a shell (`sh -c` on Unix, `cmd /d /s /c` on Windows), enabling pipes and redirects.
 
-## How it works
-
-The native binary is shipped via [`optionalDependencies`](https://docs.npmjs.com/cli/v10/configuring-npm/package-json#optionaldependencies) — the same pattern as `esbuild`, `swc`, and `biome`. npm picks the right one for your platform and CPU at install time. No postinstall scripts; no network calls during `npm install` other than the standard package fetches.
-
-## Supported platforms
-
-| Platform              | Package                          |
-| --------------------- | -------------------------------- |
-| macOS arm64           | `cross-env-rs-darwin-arm64`      |
-| macOS x64             | `cross-env-rs-darwin-x64`        |
-| Linux x64 (glibc)     | `cross-env-rs-linux-x64-gnu`     |
-| Linux x64 (musl)      | `cross-env-rs-linux-x64-musl`    |
-| Linux arm64 (glibc)   | `cross-env-rs-linux-arm64-gnu`   |
-| Linux arm64 (musl)    | `cross-env-rs-linux-arm64-musl`  |
-| Windows x64           | `cross-env-rs-windows-x64`       |
-
-`win32-arm64` is not supported in the initial release. Track progress in the [repo](https://github.com/Segodnya/cross-env-rs).
+Native binaries for macOS, Linux, and Windows on x64 and arm64. `win32-arm64` is not yet supported.
 
 ## Why
 

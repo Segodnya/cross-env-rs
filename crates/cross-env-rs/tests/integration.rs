@@ -1,7 +1,4 @@
-// Conformance integration tests for cross-env-rs.
-// Each test maps to a row in the Compatibility matrix in the root README.
-// Naming: `row_NN_short_name` where NN is the matrix row number.
-// Row 00 is reserved for scaffold smoke checks.
+// Integration tests for the cross-env / cross-env-shell binaries.
 
 use std::path::PathBuf;
 use std::sync::OnceLock;
@@ -32,7 +29,7 @@ fn print_env_bin() -> PathBuf {
 }
 
 #[test]
-fn row_00_smoke_print_env_fixture_runs() {
+fn smoke_print_env_fixture_runs() {
     Command::new(print_env_bin())
         .arg("FIXTURE_SMOKE")
         .env("FIXTURE_SMOKE", "ok")
@@ -42,20 +39,19 @@ fn row_00_smoke_print_env_fixture_runs() {
 }
 
 #[test]
-fn row_00_smoke_cross_env_passes_var_to_child() {
+fn smoke_cross_env_passes_var_to_child() {
     Command::cargo_bin("cross-env")
         .expect("cross-env binary present")
-        .arg("ROW_00=hello")
+        .arg("SMOKE=hello")
         .arg(print_env_bin())
-        .arg("ROW_00")
+        .arg("SMOKE")
         .assert()
         .success()
-        .stdout(contains("ROW_00=hello"));
+        .stdout(contains("SMOKE=hello"));
 }
 
-// ---- Matrix row 1: KEY=VAL pairs ----
 #[test]
-fn row_01_kv_pair_passes_var() {
+fn kv_pair_passes_var() {
     Command::cargo_bin("cross-env")
         .expect("cross-env binary present")
         .arg("ROW_01=hello")
@@ -66,9 +62,8 @@ fn row_01_kv_pair_passes_var() {
         .stdout("ROW_01=hello\n");
 }
 
-// ---- Matrix row 2: Multiple env vars before command ----
 #[test]
-fn row_02_multiple_kv_pairs() {
+fn multiple_kv_pairs() {
     Command::cargo_bin("cross-env")
         .expect("cross-env binary present")
         .args(["A=1", "B=2", "C=3"])
@@ -79,10 +74,9 @@ fn row_02_multiple_kv_pairs() {
         .stdout("A=1\nB=2\nC=3\n");
 }
 
-// ---- Matrix row 10: Exit code propagation ----
 // Use cross-env-shell so `exit 42` runs portably across sh / cmd.
 #[test]
-fn row_10_exit_code_propagation() {
+fn exit_code_propagation() {
     Command::cargo_bin("cross-env-shell")
         .expect("cross-env-shell binary present")
         .arg("ROW_10=x")
@@ -91,12 +85,11 @@ fn row_10_exit_code_propagation() {
         .code(42);
 }
 
-// ---- Matrix row 11: Signal-killed exit (128+sig) — Unix only ----
-// Windows returns `1` here (see README caveat); no separate Windows test
-// needed — the behaviour is known and documented.
+// Signal-killed exit (128+sig) — Unix only. Windows returns 1 for any
+// abnormal termination; no separate Windows test.
 #[cfg(unix)]
 #[test]
-fn row_11_signal_killed_exit_via_shell_unix() {
+fn signal_killed_exit_via_shell_unix() {
     Command::cargo_bin("cross-env-shell")
         .expect("cross-env-shell binary present")
         .arg("ROW_11=x")
@@ -107,7 +100,7 @@ fn row_11_signal_killed_exit_via_shell_unix() {
 
 #[cfg(unix)]
 #[test]
-fn row_11_signal_killed_exit_via_no_shell_unix() {
+fn signal_killed_exit_via_no_shell_unix() {
     Command::cargo_bin("cross-env")
         .expect("cross-env binary present")
         .arg("ROW_11=x")
@@ -118,12 +111,11 @@ fn row_11_signal_killed_exit_via_no_shell_unix() {
         .code(143);
 }
 
-// ---- Matrix row 15: cross-env (no shell) vs cross-env-shell ----
 // no-shell: `$ROW_15` reaches the child literally.
 // shell: sh expands `$ROW_15` to its value before invoking the command.
 #[cfg(unix)]
 #[test]
-fn row_15_no_shell_passes_dollar_literal() {
+fn no_shell_passes_dollar_literal() {
     // print-env queries the literal key "$ROW_15" (no expansion);
     // it is not in env → <unset>.
     Command::cargo_bin("cross-env")
@@ -138,7 +130,7 @@ fn row_15_no_shell_passes_dollar_literal() {
 
 #[cfg(unix)]
 #[test]
-fn row_15_shell_expands_dollar() {
+fn shell_expands_dollar() {
     // sh expands $ROW_15 → "hello"; print-env then queries the key "hello" → <unset>.
     let cmd = format!("{} $ROW_15", print_env_bin().display());
     Command::cargo_bin("cross-env-shell")
@@ -150,11 +142,10 @@ fn row_15_shell_expands_dollar() {
         .stdout("hello=<unset>\n");
 }
 
-// ---- Matrix row 3: Empty value (`FOO=`) ----
 // `KEY=` must set the variable to an empty string (set-but-empty),
 // distinct from unset.
 #[test]
-fn row_03_empty_value_is_set_but_empty() {
+fn empty_value_is_set_but_empty() {
     Command::cargo_bin("cross-env")
         .expect("cross-env binary present")
         .arg("ROW_03=")
@@ -165,10 +156,9 @@ fn row_03_empty_value_is_set_but_empty() {
         .stdout("ROW_03=\n");
 }
 
-// ---- Matrix row 4: Value contains `=` (`FOO=a=b`) ----
 // split_kv must split on the FIRST `=`: key=ROW_04, value=a=b=c.
 #[test]
-fn row_04_value_contains_equals() {
+fn value_contains_equals() {
     Command::cargo_bin("cross-env")
         .expect("cross-env binary present")
         .arg("ROW_04=a=b=c")
@@ -179,19 +169,18 @@ fn row_04_value_contains_equals() {
         .stdout("ROW_04=a=b=c\n");
 }
 
-// ---- Matrix row 16: Windows `.cmd` / `.bat` + PATHEXT ----
 // `DirectExecutor` calls `which::which` which, on Windows, walks `%PATHEXT%`
 // and resolves an extensionless name to its `.exe`/`.cmd`/`.bat`/... target.
 // We exercise that end-to-end by dropping a `.cmd` script into a temp dir,
 // prepending it to PATH, and invoking cross-env with the bare script name.
 #[cfg(windows)]
 #[test]
-fn row_16_resolves_dot_cmd_via_pathext() {
+fn resolves_dot_cmd_via_pathext() {
     use std::ffi::OsString;
     use std::fs;
 
     let tmp_root = std::env::temp_dir().join(format!(
-        "cross-env-rs-row16-{}-{}",
+        "cross-env-rs-pathext-{}-{}",
         std::process::id(),
         std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
@@ -199,8 +188,8 @@ fn row_16_resolves_dot_cmd_via_pathext() {
             .unwrap_or(0)
     ));
     fs::create_dir_all(&tmp_root).expect("create temp dir");
-    let cmd_path = tmp_root.join("row16script.cmd");
-    fs::write(&cmd_path, "@echo ROW_16=%ROW_16%\r\n").expect("write .cmd");
+    let cmd_path = tmp_root.join("pathext_script.cmd");
+    fs::write(&cmd_path, "@echo PATHEXT_VAR=%PATHEXT_VAR%\r\n").expect("write .cmd");
 
     let parent_path = std::env::var_os("PATH").unwrap_or_default();
     let mut new_path = OsString::from(&tmp_root);
@@ -210,23 +199,22 @@ fn row_16_resolves_dot_cmd_via_pathext() {
     Command::cargo_bin("cross-env")
         .expect("cross-env binary present")
         .env("PATH", new_path)
-        .arg("ROW_16=hello")
+        .arg("PATHEXT_VAR=hello")
         // Bare name (no extension) — PATHEXT walk in `which` resolves to .cmd.
-        .arg("row16script")
+        .arg("pathext_script")
         .assert()
         .success()
-        .stdout(contains("ROW_16=hello"));
+        .stdout(contains("PATHEXT_VAR=hello"));
 
     let _ = fs::remove_dir_all(&tmp_root);
 }
 
-// ---- Matrix row 9: PATH-list separator `:` ↔ `;` auto-translate ----
 // For the upstream whitelist (PATH, NODE_PATH; case-insensitive), the foreign
 // list separator is replaced with the native one before applying to the child.
 // Other keys are left untouched.
 #[cfg(unix)]
 #[test]
-fn row_09_path_translates_semicolons_to_colons_on_unix() {
+fn path_translates_semicolons_to_colons_on_unix() {
     Command::cargo_bin("cross-env")
         .expect("cross-env binary present")
         .arg("NODE_PATH=lib;extra;more")
@@ -239,7 +227,7 @@ fn row_09_path_translates_semicolons_to_colons_on_unix() {
 
 #[cfg(unix)]
 #[test]
-fn row_09_non_path_key_keeps_separator_on_unix() {
+fn non_path_key_keeps_separator_on_unix() {
     Command::cargo_bin("cross-env")
         .expect("cross-env binary present")
         .arg("ROW_09_OTHER=a;b;c")
@@ -250,11 +238,10 @@ fn row_09_non_path_key_keeps_separator_on_unix() {
         .stdout("ROW_09_OTHER=a;b;c\n");
 }
 
-// ---- Matrix row 8: `%VAR%` (Windows-style) auto-translate ----
 // `%VAR%` is expanded from the parent process env on any platform — same
 // `package.json` script works on both Windows shells and Unix shells.
 #[test]
-fn row_08_percent_var_percent_expands_from_parent() {
+fn percent_var_percent_expands_from_parent() {
     Command::cargo_bin("cross-env")
         .expect("cross-env binary present")
         .env("ROW_08_PARENT", "winval")
@@ -267,7 +254,7 @@ fn row_08_percent_var_percent_expands_from_parent() {
 }
 
 #[test]
-fn row_08_unset_percent_var_expands_to_empty() {
+fn unset_percent_var_expands_to_empty() {
     Command::cargo_bin("cross-env")
         .expect("cross-env binary present")
         .env_remove("ROW_08_MISSING")
@@ -279,11 +266,10 @@ fn row_08_unset_percent_var_expands_to_empty() {
         .stdout("ROW_08_OUT=ab\n");
 }
 
-// ---- Matrix row 7: `$VAR` / `${VAR}` substitution ----
 // Values like `$PARENT_VAR` and `${PARENT_VAR}` are expanded from the parent
 // process env before being applied to the child. Unset vars expand to empty.
 #[test]
-fn row_07_unbraced_dollar_var_expands_from_parent() {
+fn unbraced_dollar_var_expands_from_parent() {
     Command::cargo_bin("cross-env")
         .expect("cross-env binary present")
         .env("ROW_07_PARENT", "expanded")
@@ -296,7 +282,7 @@ fn row_07_unbraced_dollar_var_expands_from_parent() {
 }
 
 #[test]
-fn row_07_braced_dollar_var_expands_from_parent() {
+fn braced_dollar_var_expands_from_parent() {
     Command::cargo_bin("cross-env")
         .expect("cross-env binary present")
         .env("ROW_07_BR", "abc")
@@ -309,7 +295,7 @@ fn row_07_braced_dollar_var_expands_from_parent() {
 }
 
 #[test]
-fn row_07_unset_var_expands_to_empty() {
+fn unset_var_expands_to_empty() {
     Command::cargo_bin("cross-env")
         .expect("cross-env binary present")
         .env_remove("ROW_07_MISSING")
@@ -321,11 +307,10 @@ fn row_07_unset_var_expands_to_empty() {
         .stdout("ROW_07_OUT=ab\n");
 }
 
-// ---- Matrix row 6: `--version` / `--help` flags ----
 // Both bins recognise --help/-h and --version/-V only as the FIRST positional
 // arg, exit 0, and print to stdout. Empty args print help to stderr and exit 1.
 #[test]
-fn row_06_help_long_flag_prints_usage_to_stdout() {
+fn help_long_flag_prints_usage_to_stdout() {
     Command::cargo_bin("cross-env")
         .expect("cross-env binary present")
         .arg("--help")
@@ -335,7 +320,7 @@ fn row_06_help_long_flag_prints_usage_to_stdout() {
 }
 
 #[test]
-fn row_06_help_short_flag_matches_long() {
+fn help_short_flag_matches_long() {
     Command::cargo_bin("cross-env")
         .expect("cross-env binary present")
         .arg("-h")
@@ -345,7 +330,7 @@ fn row_06_help_short_flag_matches_long() {
 }
 
 #[test]
-fn row_06_version_long_flag_prints_pkg_version() {
+fn version_long_flag_prints_pkg_version() {
     Command::cargo_bin("cross-env")
         .expect("cross-env binary present")
         .arg("--version")
@@ -355,7 +340,7 @@ fn row_06_version_long_flag_prints_pkg_version() {
 }
 
 #[test]
-fn row_06_version_short_flag_matches_long() {
+fn version_short_flag_matches_long() {
     Command::cargo_bin("cross-env")
         .expect("cross-env binary present")
         .arg("-V")
@@ -365,7 +350,7 @@ fn row_06_version_short_flag_matches_long() {
 }
 
 #[test]
-fn row_06_shell_help_mentions_shell_binary() {
+fn shell_help_mentions_shell_binary() {
     Command::cargo_bin("cross-env-shell")
         .expect("cross-env-shell binary present")
         .arg("--help")
@@ -375,7 +360,7 @@ fn row_06_shell_help_mentions_shell_binary() {
 }
 
 #[test]
-fn row_06_shell_version_matches_pkg_version() {
+fn shell_version_matches_pkg_version() {
     Command::cargo_bin("cross-env-shell")
         .expect("cross-env-shell binary present")
         .arg("--version")
@@ -385,7 +370,7 @@ fn row_06_shell_version_matches_pkg_version() {
 }
 
 #[test]
-fn row_06_no_args_prints_help_to_stderr_and_exits_nonzero() {
+fn no_args_prints_help_to_stderr_and_exits_nonzero() {
     Command::cargo_bin("cross-env")
         .expect("cross-env binary present")
         .assert()
@@ -394,7 +379,7 @@ fn row_06_no_args_prints_help_to_stderr_and_exits_nonzero() {
 }
 
 #[test]
-fn row_06_help_only_recognised_as_first_arg() {
+fn help_only_recognised_as_first_arg() {
     // `FOO=bar --help` — `--help` is not the first arg, so dispatch does not
     // short-circuit. parse() takes FOO=bar as env, `--help` as command;
     // which::which("--help") fails → exit 127 with an error on stderr.
@@ -407,11 +392,10 @@ fn row_06_help_only_recognised_as_first_arg() {
         .stderr(contains("cross-env:"));
 }
 
-// ---- Matrix row 5: `--` argument terminator ----
 // After `--`, env-parsing stops: subsequent KEY=VAL-shaped tokens reach the
 // child as literal args, not as environment variables.
 #[test]
-fn row_05_double_dash_stops_env_parsing() {
+fn double_dash_stops_env_parsing() {
     Command::cargo_bin("cross-env")
         .expect("cross-env binary present")
         .arg("ROW_05=applied")
@@ -426,7 +410,7 @@ fn row_05_double_dash_stops_env_parsing() {
 }
 
 #[test]
-fn row_05_double_dash_applied_envs_still_reach_child() {
+fn double_dash_applied_envs_still_reach_child() {
     // Sanity: env vars set BEFORE `--` are still applied to the child.
     Command::cargo_bin("cross-env")
         .expect("cross-env binary present")
@@ -439,7 +423,6 @@ fn row_05_double_dash_applied_envs_still_reach_child() {
         .stdout("ROW_05_VAR=hello\n");
 }
 
-// ---- Matrix row 12: SIGINT/SIGTERM forwarding to child ----
 // cross-env, like upstream Node-cross-env, installs no explicit signal handler.
 // A terminal signal (Ctrl+C) is delivered to the whole process group, so both
 // cross-env and the child receive it simultaneously — both die. wait() from
@@ -449,7 +432,7 @@ fn row_05_double_dash_applied_envs_still_reach_child() {
 // sleep (which would imply the child outlived the wrapper).
 #[cfg(unix)]
 #[test]
-fn row_12_pgroup_signal_kills_child_unix() {
+fn pgroup_signal_kills_child_unix() {
     use std::os::unix::process::{CommandExt, ExitStatusExt};
     use std::process::Stdio;
     use std::thread;
@@ -501,11 +484,10 @@ fn row_12_pgroup_signal_kills_child_unix() {
     );
 }
 
-// ---- Matrix row 13: Stdio inheritance ----
 // Stdin from the parent must reach the child through cross-env.
 // Stdout/stderr inheritance is implicitly verified by every `.stdout(...)` assertion.
 #[test]
-fn row_13_stdin_inherits_through_cross_env() {
+fn stdin_inherits_through_cross_env() {
     Command::cargo_bin("cross-env")
         .expect("cross-env binary present")
         .arg("ROW_13=x")
@@ -517,9 +499,8 @@ fn row_13_stdin_inherits_through_cross_env() {
         .stdout("piped through\n");
 }
 
-// ---- Matrix row 14: Parent env passthrough + per-call override ----
 #[test]
-fn row_14_parent_env_passes_through() {
+fn parent_env_passes_through() {
     // Var is set in parent env, not on the cross-env CLI — the child must inherit it.
     Command::cargo_bin("cross-env")
         .expect("cross-env binary present")
@@ -533,7 +514,7 @@ fn row_14_parent_env_passes_through() {
 }
 
 #[test]
-fn row_14_cli_value_overrides_parent_value() {
+fn cli_value_overrides_parent_value() {
     // Same name set in parent env and on the CLI — CLI value wins.
     Command::cargo_bin("cross-env")
         .expect("cross-env binary present")
