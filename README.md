@@ -116,17 +116,33 @@ Numbers will be tracked per release as performance evolves. Different CPU famili
 ## Repository layout
 
 ```
-crates/cross-env-rs/         # Rust crate (two binaries: cross-env, cross-env-shell)
-npm/cross-env-rs/            # main npm package, JS shim that picks the right native binary
-npm/cross-env-rs-<platform>/ # 7 platform-specific native binary packages
-.githooks/                   # pre-commit and pre-push: fmt, clippy, cargo test
-scripts/                     # local cross-build, benchmark, conformance helpers
-.github/workflows/           # release-only workflow (no per-PR matrix)
+crates/cross-env-rs/             # Rust crate (two binaries: cross-env, cross-env-shell)
+crates/test-fixtures/print-env/  # Test-only binary used by integration tests (publish = false)
+npm/cross-env-rs/                # main npm package, JS shim that picks the right native binary
+npm/cross-env-rs-<platform>/     # 7 platform-specific native binary packages
+.githooks/                       # pre-commit and pre-push: fmt, clippy, cargo test
+scripts/                         # local cross-build, benchmark, conformance helpers
+.github/workflows/               # release-only workflow (no per-PR matrix)
 ```
+
+## Development
+
+After cloning, wire up the local git hooks once:
+
+```sh
+git config core.hooksPath .githooks
+```
+
+This enables:
+
+- **`pre-commit`**: `cargo fmt --check` + `cargo test --workspace` + JS shim tests when present.
+- **`pre-push`**: same as `pre-commit` plus `cargo clippy --workspace --all-targets -- -D warnings`.
+
+Tests are pure Rust — `cargo test --workspace` is enough. The integration suite uses a small workspace-internal fixture (`crates/test-fixtures/print-env`) that `escargot` builds on demand.
 
 ## Contributing
 
-Not yet open for contributions — the scaffold is incoming. Once `0.1.0` is released, see `CONTRIBUTING.md`.
+Not yet open for contributions. Once the conformance track lands, see `CONTRIBUTING.md`.
 
 ## License
 

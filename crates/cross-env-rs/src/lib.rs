@@ -46,7 +46,11 @@ pub fn parse(input: Vec<OsString>) -> Result<Parsed> {
 
     let command = command.ok_or_else(|| anyhow!("no command provided"))?;
     let args: Vec<OsString> = iter.collect();
-    Ok(Parsed { envs, command, args })
+    Ok(Parsed {
+        envs,
+        command,
+        args,
+    })
 }
 
 fn split_kv(arg: &OsStr) -> Option<(OsString, OsString)> {
@@ -70,12 +74,8 @@ fn is_valid_key(s: &str) -> bool {
 }
 
 pub fn run(parsed: Parsed) -> Result<i32> {
-    let resolved = which::which(&parsed.command).with_context(|| {
-        format!(
-            "command not found: {}",
-            parsed.command.to_string_lossy()
-        )
-    })?;
+    let resolved = which::which(&parsed.command)
+        .with_context(|| format!("command not found: {}", parsed.command.to_string_lossy()))?;
 
     let mut cmd = Command::new(resolved);
     cmd.args(&parsed.args);
@@ -83,12 +83,9 @@ pub fn run(parsed: Parsed) -> Result<i32> {
         cmd.env(k, v);
     }
 
-    let status = cmd.status().with_context(|| {
-        format!(
-            "failed to spawn: {}",
-            parsed.command.to_string_lossy()
-        )
-    })?;
+    let status = cmd
+        .status()
+        .with_context(|| format!("failed to spawn: {}", parsed.command.to_string_lossy()))?;
 
     Ok(status.code().unwrap_or_else(|| signal_exit_code(&status)))
 }
@@ -117,17 +114,15 @@ pub fn run_shell(parsed: Parsed) -> Result<i32> {
         cmd.env(k, v);
     }
 
-    let status = cmd
-        .status()
-        .context("failed to spawn shell")?;
+    let status = cmd.status().context("failed to spawn shell")?;
 
     Ok(status.code().unwrap_or_else(|| signal_exit_code(&status)))
 }
 
 fn push_arg(buf: &mut String, arg: &OsStr) -> Result<()> {
-    let s = arg.to_str().ok_or_else(|| {
-        anyhow!("non-UTF-8 argument cannot be passed through to shell")
-    })?;
+    let s = arg
+        .to_str()
+        .ok_or_else(|| anyhow!("non-UTF-8 argument cannot be passed through to shell"))?;
     buf.push_str(s);
     Ok(())
 }

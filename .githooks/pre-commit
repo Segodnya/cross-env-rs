@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+# Local pre-commit checks. Wire up once per clone:
+#   git config core.hooksPath .githooks
+set -euo pipefail
+
+cd "$(git rev-parse --show-toplevel)"
+
+echo "[pre-commit] cargo fmt --check"
+cargo fmt --all -- --check
+
+echo "[pre-commit] cargo test --workspace"
+cargo test --workspace --quiet
+
+SHIM_DIR="npm/cross-env-rs/test"
+if [ -d "$SHIM_DIR" ] && find "$SHIM_DIR" -name '*.test.js' -type f -print -quit | grep -q .; then
+    echo "[pre-commit] node --test $SHIM_DIR"
+    node --test "$SHIM_DIR"
+fi
+
+echo "[pre-commit] ok"
