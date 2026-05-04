@@ -14,28 +14,36 @@ const SUPPORTED = [
   'windows-x64',
 ];
 
-function detectLinuxLibc() {
+// Detects glibc vs musl on Linux. Reads `process.report` (Node-internal,
+// reliable when present) first, then falls back to checking
+// /etc/alpine-release. Defaults to 'gnu' for unknown distros.
+function detectLinuxLibc({ getReport = readGetReport, fileExists = fs.existsSync } = {}) {
   try {
-    const report = process.report && process.report.getReport && process.report.getReport();
+    const report = getReport();
     if (report && report.header && report.header.glibcVersionRuntime) {
       return 'gnu';
     }
   } catch (_) { /* ignore */ }
   try {
-    if (fs.existsSync('/etc/alpine-release')) return 'musl';
+    if (fileExists('/etc/alpine-release')) return 'musl';
   } catch (_) { /* ignore */ }
   return 'gnu';
 }
 
-function detectPlatformPackage() {
-  const platform = process.platform;
-  const arch = process.arch;
+function readGetReport() {
+  return process.report && process.report.getReport && process.report.getReport();
+}
 
+// Pure: maps (platform, arch, libc) → platform package name, or null when
+// unsupported. `libc` is consulted only on linux; pass null to let the shim
+// auto-detect via detectLinuxLibc().
+function detectPlatformPackage({ platform, arch, libc = null } = {}) {
   if (platform === 'darwin' && (arch === 'arm64' || arch === 'x64')) {
     return `cross-env-rs-darwin-${arch}`;
   }
   if (platform === 'linux' && (arch === 'x64' || arch === 'arm64')) {
-    return `cross-env-rs-linux-${arch}-${detectLinuxLibc()}`;
+    const resolvedLibc = libc != null ? libc : detectLinuxLibc();
+    return `cross-env-rs-linux-${arch}-${resolvedLibc}`;
   }
   if (platform === 'win32' && arch === 'x64') {
     return 'cross-env-rs-windows-x64';
@@ -43,47 +51,84 @@ function detectPlatformPackage() {
   return null;
 }
 
-function fail(message) {
-  process.stderr.write(`cross-env-rs: ${message}\n`);
-  process.exit(1);
-}
-
-function resolveBinary(mode) {
-  const pkg = detectPlatformPackage();
+// Resolves the absolute path to the native binary for the given mode, or
+// throws with a structured failure (caller decides how to surface it).
+function resolveBinary({
+  mode,
+  platform,
+  arch,
+  libc,
+  requireResolve,
+  fileExists,
+}) {
+  const pkg = detectPlatformPackage({ platform, arch, libc });
   if (!pkg) {
-    fail(
-      `unsupported platform ${process.platform}-${process.arch}. ` +
+    throw new ShimError(
+      `unsupported platform ${platform}-${arch}. ` +
       `Supported: ${SUPPORTED.join(', ')}.`,
     );
   }
 
   let pkgRoot;
   try {
-    pkgRoot = path.dirname(require.resolve(`${pkg}/package.json`));
+    pkgRoot = path.dirname(requireResolve(`${pkg}/package.json`));
   } catch (_) {
-    fail(
+    throw new ShimError(
       `${pkg} is not installed. The native binary is shipped via optionalDependencies — ` +
       `if you used --no-optional or --omit=optional, reinstall without that flag.`,
     );
   }
 
-  const exe = process.platform === 'win32' ? `${mode}.exe` : mode;
+  const exe = platform === 'win32' ? `${mode}.exe` : mode;
   const binPath = path.join(pkgRoot, 'bin', exe);
-  if (!fs.existsSync(binPath)) {
-    fail(`binary not found at ${binPath}. The platform package may be corrupted; try reinstalling.`);
+  if (!fileExists(binPath)) {
+    throw new ShimError(
+      `binary not found at ${binPath}. The platform package may be corrupted; try reinstalling.`,
+    );
   }
   return binPath;
 }
 
-module.exports = function run(mode) {
-  const binary = resolveBinary(mode);
-  const result = spawnSync(binary, process.argv.slice(2), { stdio: 'inherit' });
+class ShimError extends Error {}
+
+function run(mode, opts = {}) {
+  const {
+    platform = process.platform,
+    arch = process.arch,
+    libc = null,
+    argv = process.argv.slice(2),
+    spawn = spawnSync,
+    exit = process.exit.bind(process),
+    stderr = process.stderr,
+    requireResolve = (id) => require.resolve(id),
+    fileExists = fs.existsSync,
+    sendSignal = (sig) => process.kill(process.pid, sig),
+  } = opts;
+
+  let binary;
+  try {
+    binary = resolveBinary({ mode, platform, arch, libc, requireResolve, fileExists });
+  } catch (err) {
+    if (err instanceof ShimError) {
+      stderr.write(`cross-env-rs: ${err.message}\n`);
+      return exit(1);
+    }
+    throw err;
+  }
+
+  const result = spawn(binary, argv, { stdio: 'inherit' });
   if (result.error) {
-    fail(`failed to spawn ${mode}: ${result.error.message}`);
+    stderr.write(`cross-env-rs: failed to spawn ${mode}: ${result.error.message}\n`);
+    return exit(1);
   }
   if (result.signal) {
-    process.kill(process.pid, result.signal);
-    return;
+    return sendSignal(result.signal);
   }
-  process.exit(result.status == null ? 1 : result.status);
-};
+  return exit(result.status == null ? 1 : result.status);
+}
+
+module.exports = run;
+module.exports.run = run;
+module.exports.detectPlatformPackage = detectPlatformPackage;
+module.exports.detectLinuxLibc = detectLinuxLibc;
+module.exports.SUPPORTED = SUPPORTED;
