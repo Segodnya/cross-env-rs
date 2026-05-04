@@ -2,11 +2,12 @@
 
 > Rust port of [cross-env](https://github.com/kentcdodds/cross-env). Drop-in replacement that ships native binaries for instant startup.
 
-[![placeholder](https://img.shields.io/badge/status-placeholder-orange)](https://www.npmjs.com/package/cross-env-rs)
+[![npm](https://img.shields.io/npm/v/cross-env-rs)](https://www.npmjs.com/package/cross-env-rs)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](./LICENSE)
 
 ## Status
 
-This repository hosts the in-progress port. **No release yet** — the npm packages currently published under `cross-env-rs` and `cross-env-rs-<platform>` are name-reservation placeholders (`0.0.1-placeholder.0`, `--tag placeholder`). The first usable release will be `0.1.0`.
+`cross-env-rs@0.1.1` is live on npm with binary provenance for all 7 platform packages. The core port is functional — `KEY=VAL` parsing, `which`-based binary lookup, `cross-env-shell`, exit-code propagation, Unix signal forwarding. See [Compatibility](#compatibility) for the per-feature matrix. The conformance test suite (ported from upstream Jest tests) is the active work track.
 
 ## Why
 
@@ -37,6 +38,59 @@ This repository hosts the in-progress port. **No release yet** — the npm packa
 
 > **Not yet supported**: `win32-arm64`. Tracked as a follow-up; if you need it, please open an issue.
 
+## Compatibility
+
+This package is a port — every release is graded against upstream `cross-env` behaviour. Each row below is one observable feature; status moves to ✅ only when an automated test exists and passes.
+
+**Legend:** ✅ implemented & tested · ⚠️ partial or platform gap · ❓ likely works, not yet test-verified · ❌ not yet implemented.
+
+### CLI parsing
+
+| # | Feature | Status | Test |
+| - | ------- | :----: | ---- |
+| 1 | `KEY=VAL` pairs | ✅ | `parses_single_kv_and_command` |
+| 2 | Multiple env vars before command | ✅ | `parses_multiple_kv` |
+| 3 | Empty value (`FOO=`) | ❓ | — |
+| 4 | Value contains `=` (`FOO=a=b`) | ❓ | — |
+| 5 | `--` argument terminator | ❌ | — |
+| 6 | `--version` / `--help` flags | ❌ | — |
+
+### Variable expansion
+
+| # | Feature | Status | Test |
+| - | ------- | :----: | ---- |
+| 7 | `$VAR` / `${VAR}` substitution | ❌ | — |
+| 8 | `%VAR%` (Windows-style) auto-translate | ❌ | — |
+| 9 | PATH-list separator `:` ↔ `;` auto-translate | ❌ | — |
+
+### Process execution
+
+| #  | Feature | Status | Test |
+| -- | ------- | :----: | ---- |
+| 10 | Exit code propagation | ❓ | — |
+| 11 | Signal-killed exit code (128 + sig) | ⚠️ | — |
+| 12 | SIGINT / SIGTERM forwarding to child | ❓ | — |
+| 13 | Stdio inheritance (stdin/stdout/stderr) | ❓ | — |
+| 14 | Parent env passthrough + per-call override | ❓ | — |
+| 15 | `cross-env` (no shell) vs `cross-env-shell` | ❓ | — |
+
+> **Row 11 caveat:** Unix paths return `128 + signal` as upstream does. Windows currently returns `1` for any abnormal termination — tracked as a follow-up.
+
+### Platform
+
+| #  | Feature | Status | Test |
+| -- | ------- | :----: | ---- |
+| 16 | Windows `.cmd` / `.bat` / `.ps1` + PATHEXT | ❓ | — |
+| 17 | musl/glibc autodispatch (JS shim) | ❓ | manual smoke only |
+
+### JS shim
+
+| #  | Feature | Status | Test |
+| -- | ------- | :----: | ---- |
+| 18 | Unsupported platform error message | ❓ | — |
+
+Each row will be backed by an automated test in `crates/cross-env-rs/tests/integration.rs` (Rust binary behaviour) or `npm/cross-env-rs/test/shim.test.js` (JS shim). Rule: a PR without a test does not move a row out of ❓.
+
 ## Benchmarks
 
 Measured on macOS arm64 (Apple Silicon, M-series), Node 22, against upstream `cross-env@7.0.3`. Reproduce with `bash scripts/bench.sh`.
@@ -54,10 +108,10 @@ Numbers will be tracked per release as performance evolves. Different CPU famili
 
 ## Roadmap
 
-1. **Day 0 (current):** placeholder publish to reserve names.
-2. **0.1.0:** core port — `KEY=VAL` parsing, `which`-based binary lookup, signal forwarding, `cross-env-shell`, conformance test suite ported from upstream Jest tests.
-3. **CI:** minimal release-only `release-please` workflow; correctness checks live in local git hooks (no CI minutes spent on lint/test on every PR).
-4. **0.2.x+:** performance polish, additional platforms (`win32-arm64`), broader edge-case coverage.
+1. **0.1.x (current):** core port shipped — `KEY=VAL` parsing, `which`-based binary lookup, `cross-env-shell`, exit-code propagation, Unix signal forwarding. Published to npm under `cross-env-rs` with provenance for 7 platform packages.
+2. **Conformance track (active):** integration tests in `crates/cross-env-rs/tests/integration.rs` covering each row of the [Compatibility](#compatibility) matrix; close the ❌ gaps (variable expansion, `--` terminator, `--version`/`--help`) and verify all ❓ rows.
+3. **CI:** release-only `release-please` workflow; correctness checks live in local git hooks (no CI minutes spent on lint/test on every PR).
+4. **Future:** Windows signal-forwarding parity (row 11), `win32-arm64` platform package, performance polish.
 
 ## Repository layout
 
