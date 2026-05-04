@@ -48,8 +48,8 @@ This package is a port — every release is graded against upstream `cross-env` 
 
 | # | Feature | Status | Test |
 | - | ------- | :----: | ---- |
-| 1 | `KEY=VAL` pairs | ✅ | `parses_single_kv_and_command` |
-| 2 | Multiple env vars before command | ✅ | `parses_multiple_kv` |
+| 1 | `KEY=VAL` pairs | ✅ | `row_01_kv_pair_passes_var` |
+| 2 | Multiple env vars before command | ✅ | `row_02_multiple_kv_pairs` |
 | 3 | Empty value (`FOO=`) | ❓ | — |
 | 4 | Value contains `=` (`FOO=a=b`) | ❓ | — |
 | 5 | `--` argument terminator | ❌ | — |
@@ -67,12 +67,12 @@ This package is a port — every release is graded against upstream `cross-env` 
 
 | #  | Feature | Status | Test |
 | -- | ------- | :----: | ---- |
-| 10 | Exit code propagation | ❓ | — |
-| 11 | Signal-killed exit code (128 + sig) | ⚠️ | — |
+| 10 | Exit code propagation | ✅ | `row_10_exit_code_propagation` |
+| 11 | Signal-killed exit code (128 + sig) | ⚠️ | `row_11_*_unix` |
 | 12 | SIGINT / SIGTERM forwarding to child | ❓ | — |
 | 13 | Stdio inheritance (stdin/stdout/stderr) | ❓ | — |
 | 14 | Parent env passthrough + per-call override | ❓ | — |
-| 15 | `cross-env` (no shell) vs `cross-env-shell` | ❓ | — |
+| 15 | `cross-env` (no shell) vs `cross-env-shell` | ✅ | `row_15_*` |
 
 > **Row 11 caveat:** Unix paths return `128 + signal` as upstream does. Windows currently returns `1` for any abnormal termination — tracked as a follow-up.
 
