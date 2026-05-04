@@ -1,7 +1,12 @@
 use std::ffi::{OsStr, OsString};
-use std::process::Command;
 
-use anyhow::{anyhow, Context, Result};
+use anyhow::{anyhow, Result};
+
+pub mod execute;
+pub mod resolve;
+
+pub use execute::{execute, DirectExecutor, Executor, ExitInfo, ShellExecutor};
+pub use resolve::{resolve, EnvSource, Resolved, SystemEnv};
 
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 
@@ -71,71 +76,6 @@ fn is_valid_key(s: &str) -> bool {
         _ => return false,
     }
     chars.all(|c| c.is_ascii_alphanumeric() || c == '_')
-}
-
-pub fn run(parsed: Parsed) -> Result<i32> {
-    let resolved = which::which(&parsed.command)
-        .with_context(|| format!("command not found: {}", parsed.command.to_string_lossy()))?;
-
-    let mut cmd = Command::new(resolved);
-    cmd.args(&parsed.args);
-    for (k, v) in &parsed.envs {
-        cmd.env(k, v);
-    }
-
-    let status = cmd
-        .status()
-        .with_context(|| format!("failed to spawn: {}", parsed.command.to_string_lossy()))?;
-
-    Ok(status.code().unwrap_or_else(|| signal_exit_code(&status)))
-}
-
-pub fn run_shell(parsed: Parsed) -> Result<i32> {
-    let mut joined = String::new();
-    push_arg(&mut joined, &parsed.command)?;
-    for arg in &parsed.args {
-        joined.push(' ');
-        push_arg(&mut joined, arg)?;
-    }
-
-    let mut cmd = if cfg!(windows) {
-        let mut c = Command::new("cmd");
-        c.args(["/d", "/s", "/c"]);
-        c.arg(&joined);
-        c
-    } else {
-        let mut c = Command::new("sh");
-        c.arg("-c");
-        c.arg(&joined);
-        c
-    };
-
-    for (k, v) in &parsed.envs {
-        cmd.env(k, v);
-    }
-
-    let status = cmd.status().context("failed to spawn shell")?;
-
-    Ok(status.code().unwrap_or_else(|| signal_exit_code(&status)))
-}
-
-fn push_arg(buf: &mut String, arg: &OsStr) -> Result<()> {
-    let s = arg
-        .to_str()
-        .ok_or_else(|| anyhow!("non-UTF-8 argument cannot be passed through to shell"))?;
-    buf.push_str(s);
-    Ok(())
-}
-
-#[cfg(unix)]
-fn signal_exit_code(status: &std::process::ExitStatus) -> i32 {
-    use std::os::unix::process::ExitStatusExt;
-    status.signal().map(|s| 128 + s).unwrap_or(1)
-}
-
-#[cfg(not(unix))]
-fn signal_exit_code(_status: &std::process::ExitStatus) -> i32 {
-    1
 }
 
 #[cfg(test)]

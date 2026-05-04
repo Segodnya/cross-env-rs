@@ -1,7 +1,7 @@
 use std::ffi::OsString;
 use std::process::ExitCode;
 
-use cross_env_rs::{parse, run, HELP_MAIN, VERSION};
+use cross_env_rs::{execute, parse, resolve, DirectExecutor, SystemEnv, HELP_MAIN, VERSION};
 
 fn main() -> ExitCode {
     let args: Vec<OsString> = std::env::args_os().skip(1).collect();
@@ -20,10 +20,12 @@ fn main() -> ExitCode {
         return ExitCode::from(1);
     }
 
-    let result = parse(args).and_then(run);
+    let result = parse(args)
+        .map(|p| resolve(p, &SystemEnv))
+        .and_then(|r| execute(r, &DirectExecutor));
 
     match result {
-        Ok(code) => ExitCode::from(clamp_code(code)),
+        Ok(info) => ExitCode::from(clamp_code(info.to_exit_code())),
         Err(err) => {
             eprintln!("cross-env: {err:#}");
             ExitCode::from(127)
