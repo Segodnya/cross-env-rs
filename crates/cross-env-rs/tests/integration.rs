@@ -179,6 +179,36 @@ fn row_04_value_contains_equals() {
         .stdout("ROW_04=a=b=c\n");
 }
 
+// ---- Matrix row 9: PATH-list separator `:` ↔ `;` auto-translate ----
+// For the upstream whitelist (PATH, NODE_PATH; case-insensitive), the foreign
+// list separator is replaced with the native one before applying to the child.
+// Other keys are left untouched.
+#[cfg(unix)]
+#[test]
+fn row_09_path_translates_semicolons_to_colons_on_unix() {
+    Command::cargo_bin("cross-env")
+        .expect("cross-env binary present")
+        .arg("NODE_PATH=lib;extra;more")
+        .arg(print_env_bin())
+        .arg("NODE_PATH")
+        .assert()
+        .success()
+        .stdout("NODE_PATH=lib:extra:more\n");
+}
+
+#[cfg(unix)]
+#[test]
+fn row_09_non_path_key_keeps_separator_on_unix() {
+    Command::cargo_bin("cross-env")
+        .expect("cross-env binary present")
+        .arg("ROW_09_OTHER=a;b;c")
+        .arg(print_env_bin())
+        .arg("ROW_09_OTHER")
+        .assert()
+        .success()
+        .stdout("ROW_09_OTHER=a;b;c\n");
+}
+
 // ---- Matrix row 8: `%VAR%` (Windows-style) auto-translate ----
 // `%VAR%` is expanded from the parent process env on any platform — same
 // `package.json` script works on both Windows shells and Unix shells.
